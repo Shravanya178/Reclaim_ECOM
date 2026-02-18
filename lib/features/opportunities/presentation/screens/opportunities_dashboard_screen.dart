@@ -49,17 +49,24 @@ class _OpportunitiesDashboardScreenState extends State<OpportunitiesDashboardScr
                   children: [
                     Icon(Icons.auto_awesome, color: Colors.white, size: 28.sp),
                     SizedBox(width: 12.w),
-                    Text('AI-Generated Opportunities', style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold)),
+                    Expanded(
+                      child: Text(
+                        'AI-Generated Opportunities',
+                        style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
                 SizedBox(height: 16.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                Wrap(
+                  alignment: WrapAlignment.spaceEvenly,
+                  spacing: 12.w,
+                  runSpacing: 8.h,
                   children: [
                     _buildStatColumn('Active', '${_opportunities.length}', Colors.white),
-                    Container(width: 1, height: 40.h, color: Colors.white.withOpacity(0.3)),
                     _buildStatColumn('Potential CO₂', '${_opportunities.fold(0.0, (sum, o) => sum + o.carbonImpact).toStringAsFixed(1)}kg', Colors.white),
-                    Container(width: 1, height: 40.h, color: Colors.white.withOpacity(0.3)),
                     _buildStatColumn('Avg Match', '${(_opportunities.fold(0, (sum, o) => sum + o.matchPercentage) / _opportunities.length).round()}%', Colors.white),
                   ],
                 ),

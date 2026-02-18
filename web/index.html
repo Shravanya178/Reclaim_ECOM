@@ -1,38 +1,126 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
+  <meta name="description" content="ReClaim - Campus sustainability marketplace for material reuse and e-commerce. Buy and sell sustainable materials across academic institutions.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="keywords" content="sustainability, recycling, materials, e-commerce, campus, education, reuse, circular economy">
+  
+  <!-- PWA Meta Tags -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="reclaim">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ReClaim">
+  <meta name="theme-color" content="#2E7D32">
+  <meta name="msapplication-TileColor" content="#2E7D32">
+  <meta name="msapplication-tap-highlight" content="no">
+  
+  <!-- Open Graph / Social Media -->
+  <meta property="og:title" content="ReClaim - Sustainable Materials Marketplace">
+  <meta property="og:description" content="Campus marketplace for sustainable material reuse and e-commerce">
+  <meta property="og:image" content="icons/Icon-512.png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ReClaim">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ReClaim - Sustainable Materials Marketplace">
+  <meta name="twitter:description" content="Campus marketplace for sustainable material reuse">
+  <meta name="twitter:image" content="icons/Icon-512.png">
+  
+  <!-- Apple Touch Icons -->
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="icons/Icon-192.png">
+  
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>reclaim</title>
+  <link rel="shortcut icon" type="image/png" href="favicon.png"/>
+  
+  <title>ReClaim - Sustainable Materials Marketplace</title>
   <link rel="manifest" href="manifest.json">
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    
+    .loader-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      z-index: 9999;
+    }
+    
+    .spinner {
+      border: 4px solid rgba(46, 125, 50, 0.1);
+      border-top: 4px solid #2E7D32;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .loader-text {
+      color: #2E7D32;
+      font-size: 16px;
+      font-weight: 500;
+    }
+    
+    /* Hide loader when app loads */
+    .loaded .loader-container {
+      display: none;
+    }
+  </style>
 </head>
 <body>
+  <!-- Loading Indicator -->
+  <div class="loader-container">
+    <div class="spinner"></div>
+    <div class="loader-text">Loading ReClaim...</div>
+  </div>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    // Register service worker for PWA functionality
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('flutter_service_worker.js?v=1')
+          .then(function(registration) {
+            console.log('Service Worker registered successfully:', registration.scope);
+          })
+          .catch(function(error) {
+            console.log('Service Worker registration failed:', error);
+          });
+      });
+    }
+    
+    // Hide loader when Flutter app loads
+    window.addEventListener('flutter-first-frame', function () {
+      document.body.classList.add('loaded');
+    });
+  </script>
+  
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

@@ -18,29 +18,38 @@ class _DiscoveryMapScreenState extends State<DiscoveryMapScreen> {
   
   // Sample material locations (in real app, fetch from Supabase)
   final List<MaterialPin> _materialPins = [
+    // VESIT Mumbai vicinity pins
     MaterialPin(
       id: '1',
-      location: LatLng(37.4219999, -122.0840575), // Stanford coordinates
-      title: 'PCB Components',
-      description: '5x Arduino boards, various sensors',
+      location: LatLng(19.0506, 72.8974),
+      title: 'Lab A - PCB Components',
+      description: '5x Arduino boards, sensors, jumper wires',
       materialType: 'Electronics',
       distance: 0.2,
     ),
     MaterialPin(
-      id: '2', 
-      location: LatLng(37.4239999, -122.0820575),
-      title: 'Acrylic Sheets',
-      description: '3mm clear acrylic, 12"x18"',
-      materialType: 'Acrylic',
+      id: '2',
+      location: LatLng(19.0515, 72.8966),
+      title: 'Electronics Lab B - Copper Wire',
+      description: '3kg copper spools for prototyping',
+      materialType: 'Metal',
       distance: 0.4,
     ),
     MaterialPin(
       id: '3',
-      location: LatLng(37.4199999, -122.0860575),
-      title: 'Aluminum Rods',
-      description: '6061 aluminum, various lengths',
-      materialType: 'Metal',
+      location: LatLng(19.0498, 72.8980),
+      title: 'Workshop - Acrylic Sheets',
+      description: 'Clear acrylic sheets, 12"x18" and 18"x24"',
+      materialType: 'Acrylic',
       distance: 0.6,
+    ),
+    MaterialPin(
+      id: '4',
+      location: LatLng(19.0522, 72.8978),
+      title: 'Storage Room A - Aluminum Rods',
+      description: '6061 aluminum, assorted lengths',
+      materialType: 'Metal',
+      distance: 0.7,
     ),
   ];
 
@@ -77,7 +86,7 @@ class _DiscoveryMapScreenState extends State<DiscoveryMapScreen> {
           : FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                initialCenter: _currentLocation ?? LatLng(37.4219999, -122.0840575),
+                initialCenter: _currentLocation ?? LatLng(19.0510, 72.8970),
                 initialZoom: 15.0,
                 minZoom: 10.0,
                 maxZoom: 18.0,
