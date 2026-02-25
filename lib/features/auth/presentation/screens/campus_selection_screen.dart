@@ -92,150 +92,171 @@ class _CampusSelectionScreenState extends State<CampusSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 600;
+    final maxWidth = isDesktop ? 600.0 : double.infinity;
+    
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         title: const Text('Select Campus'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: isDesktop,
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 16.h),
-              
-              Text(
-                'Find Your Institution',
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+      body: Center(
+        child: Container(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isDesktop ? 32 : 20,
+                vertical: 16,
               ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: isDesktop ? 24 : 16),
+                  
+                  Text(
+                    'Find Your Institution',
+                    style: TextStyle(
+                      fontSize: isDesktop ? 32 : 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  
+                  SizedBox(height: 8),
+                  
+                  Text(
+                    'Search and select your campus to get started',
+                    style: TextStyle(
+                      fontSize: isDesktop ? 16 : 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  
+                  SizedBox(height: 24),
               
-              SizedBox(height: 8.h),
+                  // Search Field
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search for your university or college...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                _filterCampuses('');
+                              },
+                            )
+                          : null,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: isDesktop ? 16 : 12,
+                      ),
+                    ),
+                    onChanged: _filterCampuses,
+                  ),
+                  
+                  SizedBox(height: 24),
               
-              Text(
-                'Search and select your campus to get started',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              
-              SizedBox(height: 24.h),
-              
-              // Search Field
-              TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search for your university or college...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                            _filterCampuses('');
-                          },
-                        )
-                      : null,
-                ),
-                onChanged: _filterCampuses,
-              ),
-              
-              SizedBox(height: 24.h),
-              
-              // Campus List
-              if (_selectedCampusId == null) ...[
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _filteredCampuses.length,
-                    itemBuilder: (context, index) {
-                      final campus = _filteredCampuses[index];
-                      
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 12.h),
-                        child: GestureDetector(
-                          onTap: () => _selectCampus(campus),
-                          child: Container(
-                            padding: EdgeInsets.all(16.w),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12.r),
-                              border: Border.all(color: Colors.grey.shade200),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.shade100,
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                // Campus Image Placeholder
-                                Container(
-                                  width: 50.w,
-                                  height: 50.h,
+                  // Campus List
+                  if (_selectedCampusId == null) ...[
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _filteredCampuses.length,
+                        itemBuilder: (context, index) {
+                          final campus = _filteredCampuses[index];
+                          
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () => _selectCampus(campus),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: EdgeInsets.all(isDesktop ? 20 : 16),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  child: Icon(
-                                    Icons.school,
-                                    color: Theme.of(context).colorScheme.primary,
-                                    size: 24.sp,
-                                  ),
-                                ),
-                                
-                                SizedBox(width: 12.w),
-                                
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        campus.name,
-                                        style: TextStyle(
-                                          fontSize: 14.sp,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey.shade200),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.grey.shade100,
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
                                       ),
-                                      SizedBox(height: 4.h),
-                                      Text(
-                                        campus.location,
-                                        style: TextStyle(
-                                          fontSize: 12.sp,
-                                          color: Colors.grey.shade600,
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      // Campus Image Placeholder
+                                      Container(
+                                        width: isDesktop ? 60 : 50,
+                                        height: isDesktop ? 60 : 50,
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
                                         ),
+                                        child: Icon(
+                                          Icons.school,
+                                          color: Theme.of(context).colorScheme.primary,
+                                          size: isDesktop ? 28 : 24,
+                                        ),
+                                      ),
+                                      
+                                      SizedBox(width: 16),
+                                
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              campus.name,
+                                              style: TextStyle(
+                                                fontSize: isDesktop ? 16 : 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.black,
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            SizedBox(height: 4),
+                                            Text(
+                                              campus.location,
+                                              style: TextStyle(
+                                                fontSize: isDesktop ? 14 : 12,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16,
+                                        color: Colors.grey.shade400,
                                       ),
                                     ],
                                   ),
                                 ),
-                                
-                                Icon(
-                                  Icons.arrow_forward_ios,
-                                  size: 16.sp,
-                                  color: Colors.grey.shade400,
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-              
-              // Department Selection
-              if (_selectedCampusId != null) ...[
-                Container(
-                  padding: EdgeInsets.all(16.w),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                  
+                  // Department Selection
+                  if (_selectedCampusId != null) ...[
+                    Container(
+                      padding: EdgeInsets.all(isDesktop ? 20 : 16),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12.r),
@@ -248,113 +269,128 @@ class _CampusSelectionScreenState extends State<CampusSelectionScreen> {
                         size: 20.sp,
                       ),
                       SizedBox(width: 8.w),
-                      Expanded(
-                        child: Text(
-                          _allCampuses.firstWhere((c) => c.id == _selectedCampusId).name,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _selectedCampusId = null;
-                            _selectedDepartmentId = null;
-                            _departments.clear();
-                          });
-                        },
-                        child: const Text('Change'),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                SizedBox(height: 24.h),
-                
-                Text(
-                  'Select Department',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                
-                SizedBox(height: 16.h),
-                
-                if (_isLoadingDepartments)
-                  const Center(child: CircularProgressIndicator())
-                else
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _departments.length,
-                      itemBuilder: (context, index) {
-                        final department = _departments[index];
-                        final isSelected = _selectedDepartmentId == department.id;
-                        
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 8.h),
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedDepartmentId = department.id;
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(16.w),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(12.r),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Colors.grey.shade200,
-                                  width: isSelected ? 2 : 1,
-                                ),
+                          Expanded(
+                            child: Text(
+                              _allCampuses.firstWhere((c) => c.id == _selectedCampusId).name,
+                              style: TextStyle(
+                                fontSize: isDesktop ? 16 : 14,
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w600,
                               ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      department.name,
-                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        color: isSelected
-                                            ? Theme.of(context).colorScheme.primary
-                                            : Colors.grey.shade800,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                  if (isSelected)
-                                    Icon(
-                                      Icons.check,
-                                      color: Theme.of(context).colorScheme.primary,
-                                      size: 20.sp,
-                                    ),
-                                ],
-                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        );
-                      },
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _selectedCampusId = null;
+                                _selectedDepartmentId = null;
+                                _departments.clear();
+                              });
+                            },
+                            child: const Text('Change'),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                
-                SizedBox(height: 24.h),
-                
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _selectedDepartmentId != null ? _handleComplete : null,
-                    child: const Text('Complete Setup'),
-                  ),
-                ),
-              ],
-              
-              SizedBox(height: 24.h),
-            ],
+                    
+                    SizedBox(height: 24),
+                    
+                    Text(
+                      'Select Department',
+                      style: TextStyle(
+                        fontSize: isDesktop ? 24 : 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    
+                    SizedBox(height: 16),
+                    
+                    if (_isLoadingDepartments)
+                      const Center(child: CircularProgressIndicator())
+                    else
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: _departments.length,
+                          itemBuilder: (context, index) {
+                            final department = _departments[index];
+                            final isSelected = _selectedDepartmentId == department.id;
+                            
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: 8),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedDepartmentId = department.id;
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: EdgeInsets.all(isDesktop ? 20 : 16),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? Theme.of(context).colorScheme.primary
+                                            : Colors.grey.shade200,
+                                        width: isSelected ? 2 : 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            department.name,
+                                            style: TextStyle(
+                                              fontSize: isDesktop ? 16 : 14,
+                                              color: isSelected
+                                                  ? Theme.of(context).colorScheme.primary
+                                                  : Colors.grey.shade800,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                        if (isSelected)
+                                          Icon(
+                                            Icons.check,
+                                            color: Theme.of(context).colorScheme.primary,
+                                            size: 20,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    
+                    SizedBox(height: 24),
+                    
+                    SizedBox(
+                      width: double.infinity,
+                      height: isDesktop ? 56 : 48,
+                      child: ElevatedButton(
+                        onPressed: _selectedDepartmentId != null ? _handleComplete : null,
+                        child: Text(
+                          'Complete Setup',
+                          style: TextStyle(fontSize: isDesktop ? 16 : 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                  
+                  SizedBox(height: 24),
+                ],
+              ),
+            ),
           ),
         ),
       ),

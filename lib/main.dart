@@ -31,12 +31,13 @@ class ReclaimApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
     
     return ScreenUtilInit(
-      designSize: const Size(375, 812), // iPhone X/11/12 size
+      designSize: const Size(375, 812),
       minTextAdapt: true,
       splitScreenMode: true,
+      useInheritedMediaQuery: true,
       builder: (context, child) {
         return MaterialApp.router(
-          title: 'ReClaim',
+          title: 'ReClaim - Sustainable Materials Marketplace',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
