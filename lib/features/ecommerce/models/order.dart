@@ -1,7 +1,4 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'order.freezed.dart';
-part 'order.g.dart';
+import 'order_item.dart';
 
 /// Order status enum
 enum OrderStatus {
@@ -23,36 +20,99 @@ enum PaymentStatus {
 }
 
 /// Order model
-@freezed
-class Order with _$Order {
-  const factory Order({
-    required String id,
-    required String orderNumber,
-    required String userId,
-    required double totalAmount,
-    required double subtotal,
-    required double taxAmount,
-    required double shippingAmount,
-    required double discountAmount,
-    required OrderStatus status,
-    required PaymentStatus paymentStatus,
-    required ShippingAddress shippingAddress,
-    String? trackingNumber,
-    String? notes,
-    DateTime? cancelledAt,
-    String? cancelledReason,
-    required DateTime createdAt,
-    required DateTime updatedAt,
-    List<OrderItem>? items,
-  }) = _Order;
+class Order {
+  final String id;
+  final String orderNumber;
+  final String userId;
+  final double totalAmount;
+  final double subtotal;
+  final double taxAmount;
+  final double shippingAmount;
+  final double discountAmount;
+  final OrderStatus status;
+  final PaymentStatus paymentStatus;
+  final ShippingAddress shippingAddress;
+  final String? trackingNumber;
+  final String? notes;
+  final DateTime? cancelledAt;
+  final String? cancelledReason;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final List<OrderItem>? items;
 
-  factory Order.fromJson(Map<String, dynamic> json) => _$OrderFromJson(json);
-}
+  const Order({
+    required this.id,
+    required this.orderNumber,
+    required this.userId,
+    required this.totalAmount,
+    required this.subtotal,
+    required this.taxAmount,
+    required this.shippingAmount,
+    required this.discountAmount,
+    required this.status,
+    required this.paymentStatus,
+    required this.shippingAddress,
+    this.trackingNumber,
+    this.notes,
+    this.cancelledAt,
+    this.cancelledReason,
+    required this.createdAt,
+    required this.updatedAt,
+    this.items,
+  });
 
-const Order._();
+  factory Order.fromJson(Map<String, dynamic> json) {
+    return Order(
+      id: json['id'] as String,
+      orderNumber: json['order_number'] as String,
+      userId: json['user_id'] as String,
+      totalAmount: (json['total_amount'] as num).toDouble(),
+      subtotal: (json['subtotal'] as num).toDouble(),
+      taxAmount: (json['tax_amount'] as num).toDouble(),
+      shippingAmount: (json['shipping_amount'] as num).toDouble(),
+      discountAmount: (json['discount_amount'] as num).toDouble(),
+      status: OrderStatus.values.byName(json['status'] as String),
+      paymentStatus:
+          PaymentStatus.values.byName(json['payment_status'] as String),
+      shippingAddress: ShippingAddress.fromJson(
+          json['shipping_address'] as Map<String, dynamic>),
+      trackingNumber: json['tracking_number'] as String?,
+      notes: json['notes'] as String?,
+      cancelledAt: json['cancelled_at'] != null
+          ? DateTime.parse(json['cancelled_at'] as String)
+          : null,
+      cancelledReason: json['cancelled_reason'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+      items: (json['items'] as List<dynamic>?)
+          ?.map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 
-/// Order helper methods
-extension OrderHelpers on Order {
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'order_number': orderNumber,
+      'user_id': userId,
+      'total_amount': totalAmount,
+      'subtotal': subtotal,
+      'tax_amount': taxAmount,
+      'shipping_amount': shippingAmount,
+      'discount_amount': discountAmount,
+      'status': status.name,
+      'payment_status': paymentStatus.name,
+      'shipping_address': shippingAddress.toJson(),
+      'tracking_number': trackingNumber,
+      'notes': notes,
+      'cancelled_at': cancelledAt?.toIso8601String(),
+      'cancelled_reason': cancelledReason,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'items': items?.map((e) => e.toJson()).toList(),
+    };
+  }
+
   /// Check if order can be cancelled
   bool get canBeCancelled =>
       status == OrderStatus.pending || status == OrderStatus.confirmed;
@@ -104,25 +164,49 @@ extension OrderHelpers on Order {
 }
 
 /// Shipping address model
-@freezed
-class ShippingAddress with _$ShippingAddress {
-  const factory ShippingAddress({
-    required String addressLine1,
-    String? addressLine2,
-    required String city,
-    required String state,
-    required String postalCode,
-    required String country,
-    String? phone,
-  }) = _ShippingAddress;
+class ShippingAddress {
+  final String addressLine1;
+  final String? addressLine2;
+  final String city;
+  final String state;
+  final String postalCode;
+  final String country;
+  final String? phone;
 
-  factory ShippingAddress.fromJson(Map<String, dynamic> json) =>
-      _$ShippingAddressFromJson(json);
-}
+  const ShippingAddress({
+    required this.addressLine1,
+    this.addressLine2,
+    required this.city,
+    required this.state,
+    required this.postalCode,
+    required this.country,
+    this.phone,
+  });
 
-const ShippingAddress._();
+  factory ShippingAddress.fromJson(Map<String, dynamic> json) {
+    return ShippingAddress(
+      addressLine1: json['address_line1'] as String,
+      addressLine2: json['address_line2'] as String?,
+      city: json['city'] as String,
+      state: json['state'] as String,
+      postalCode: json['postal_code'] as String,
+      country: json['country'] as String,
+      phone: json['phone'] as String?,
+    );
+  }
 
-extension ShippingAddressHelpers on ShippingAddress {
+  Map<String, dynamic> toJson() {
+    return {
+      'address_line1': addressLine1,
+      'address_line2': addressLine2,
+      'city': city,
+      'state': state,
+      'postal_code': postalCode,
+      'country': country,
+      'phone': phone,
+    };
+  }
+
   /// Get formatted address as single string
   String get formattedAddress {
     final parts = [

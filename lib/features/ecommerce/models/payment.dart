@@ -1,8 +1,3 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'payment.freezed.dart';
-part 'payment.g.dart';
-
 /// Payment method enum
 enum PaymentMethod {
   creditCard,
@@ -23,33 +18,86 @@ enum PaymentStatusType {
 }
 
 /// Payment model
-@freezed
-class Payment with _$Payment {
-  const factory Payment({
-    required String id,
-    required String orderId,
-    required double amount,
-    required PaymentMethod paymentMethod,
-    required PaymentStatusType status,
-    String? transactionId,
-    String? gatewayOrderId,
-    String? gatewayPaymentId,
-    String? gatewaySignature,
-    Map<String, dynamic>? gatewayResponse,
-    String? errorMessage,
-    double? refundAmount,
-    DateTime? refundedAt,
-    required DateTime createdAt,
-    DateTime? completedAt,
-  }) = _Payment;
+class Payment {
+  final String id;
+  final String orderId;
+  final double amount;
+  final PaymentMethod paymentMethod;
+  final PaymentStatusType status;
+  final String? transactionId;
+  final String? gatewayOrderId;
+  final String? gatewayPaymentId;
+  final String? gatewaySignature;
+  final Map<String, dynamic>? gatewayResponse;
+  final String? errorMessage;
+  final double? refundAmount;
+  final DateTime? refundedAt;
+  final DateTime createdAt;
+  final DateTime? completedAt;
 
-  factory Payment.fromJson(Map<String, dynamic> json) =>
-      _$PaymentFromJson(json);
-}
+  const Payment({
+    required this.id,
+    required this.orderId,
+    required this.amount,
+    required this.paymentMethod,
+    required this.status,
+    this.transactionId,
+    this.gatewayOrderId,
+    this.gatewayPaymentId,
+    this.gatewaySignature,
+    this.gatewayResponse,
+    this.errorMessage,
+    this.refundAmount,
+    this.refundedAt,
+    required this.createdAt,
+    this.completedAt,
+  });
 
-const Payment._();
+  factory Payment.fromJson(Map<String, dynamic> json) {
+    return Payment(
+      id: json['id'] as String,
+      orderId: json['order_id'] as String,
+      amount: (json['amount'] as num).toDouble(),
+      paymentMethod:
+          PaymentMethod.values.byName(json['payment_method'] as String),
+      status: PaymentStatusType.values.byName(json['status'] as String),
+      transactionId: json['transaction_id'] as String?,
+      gatewayOrderId: json['gateway_order_id'] as String?,
+      gatewayPaymentId: json['gateway_payment_id'] as String?,
+      gatewaySignature: json['gateway_signature'] as String?,
+      gatewayResponse: json['gateway_response'] as Map<String, dynamic>?,
+      errorMessage: json['error_message'] as String?,
+      refundAmount: (json['refund_amount'] as num?)?.toDouble(),
+      refundedAt: json['refunded_at'] != null
+          ? DateTime.parse(json['refunded_at'] as String)
+          : null,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      completedAt: json['completed_at'] != null
+          ? DateTime.parse(json['completed_at'] as String)
+          : null,
+    );
+  }
 
-extension PaymentHelpers on Payment {
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'order_id': orderId,
+      'amount': amount,
+      'payment_method': paymentMethod.name,
+      'status': status.name,
+      'transaction_id': transactionId,
+      'gateway_order_id': gatewayOrderId,
+      'gateway_payment_id': gatewayPaymentId,
+      'gateway_signature': gatewaySignature,
+      'gateway_response': gatewayResponse,
+      'error_message': errorMessage,
+      'refund_amount': refundAmount,
+      'refunded_at': refundedAt?.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'completed_at': completedAt?.toIso8601String(),
+    };
+  }
+
   /// Check if payment is successful
   bool get isSuccessful => status == PaymentStatusType.completed;
 
@@ -81,34 +129,74 @@ extension PaymentHelpers on Payment {
 }
 
 /// Payment request model for initiating payment
-@freezed
-class PaymentRequest with _$PaymentRequest {
-  const factory PaymentRequest({
-    required String orderId,
-    required double amount,
-    required PaymentMethod paymentMethod,
-    String? email,
-    String? phone,
-    String? name,
-  }) = _PaymentRequest;
+class PaymentRequest {
+  final String orderId;
+  final double amount;
+  final PaymentMethod paymentMethod;
+  final String? email;
+  final String? phone;
+  final String? name;
 
-  factory PaymentRequest.fromJson(Map<String, dynamic> json) =>
-      _$PaymentRequestFromJson(json);
+  const PaymentRequest({
+    required this.orderId,
+    required this.amount,
+    required this.paymentMethod,
+    this.email,
+    this.phone,
+    this.name,
+  });
+
+  factory PaymentRequest.fromJson(Map<String, dynamic> json) {
+    return PaymentRequest(
+      orderId: json['order_id'] as String,
+      amount: (json['amount'] as num).toDouble(),
+      paymentMethod:
+          PaymentMethod.values.byName(json['payment_method'] as String),
+      email: json['email'] as String?,
+      phone: json['phone'] as String?,
+      name: json['name'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'order_id': orderId,
+      'amount': amount,
+      'payment_method': paymentMethod.name,
+      'email': email,
+      'phone': phone,
+      'name': name,
+    };
+  }
 }
 
 /// Payment result after processing
-@freezed
-class PaymentResult with _$PaymentResult {
-  const factory PaymentResult.success({
-    required String transactionId,
-    required String paymentId,
-    String? signature,
-  }) = PaymentSuccess;
+sealed class PaymentResult {
+  const PaymentResult();
+}
 
-  const factory PaymentResult.failure({
-    required String errorMessage,
-    String? errorCode,
-  }) = PaymentFailure;
+class PaymentSuccess extends PaymentResult {
+  final String transactionId;
+  final String paymentId;
+  final String? signature;
 
-  const factory PaymentResult.cancelled() = PaymentCancelled;
+  const PaymentSuccess({
+    required this.transactionId,
+    required this.paymentId,
+    this.signature,
+  });
+}
+
+class PaymentFailure extends PaymentResult {
+  final String errorMessage;
+  final String? errorCode;
+
+  const PaymentFailure({
+    required this.errorMessage,
+    this.errorCode,
+  });
+}
+
+class PaymentCancelled extends PaymentResult {
+  const PaymentCancelled();
 }

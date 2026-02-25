@@ -142,10 +142,11 @@ class OrderService {
     try {
       final result = await _supabase
           .from('orders')
-          .select('id', const FetchOptions(count: CountOption.exact))
-          .eq('status', 'pending');
+          .select('id')
+          .eq('status', 'pending')
+          .count();
 
-      return result.count ?? 0;
+      return result.count;
     } catch (e) {
       return 0;
     }

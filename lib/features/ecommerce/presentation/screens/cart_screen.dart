@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../providers/cart_provider.dart';
+import 'package:reclaim/features/ecommerce/providers/cart_provider.dart';
+import 'package:reclaim/features/ecommerce/models/cart.dart';
 
 /// Shopping Cart Screen
-/// 
+///
 /// Displays cart items with quantity controls and checkout button
 class CartScreen extends ConsumerWidget {
   const CartScreen({super.key});
@@ -27,8 +27,10 @@ class CartScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCartContent(BuildContext context, WidgetRef ref, cart) {
+  Widget _buildCartContent(BuildContext context, WidgetRef ref, Cart? cart) {
     final hasItems = cart != null && cart.isNotEmpty;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 600;
 
     return Scaffold(
       appBar: AppBar(
@@ -44,39 +46,47 @@ class CartScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: hasItems ? _buildCartItems(ref, cart) : _buildEmptyCart(context),
-      bottomNavigationBar: hasItems ? _buildCheckoutBar(context, ref, cart) : null,
+      body: hasItems
+          ? _buildCartItems(context, ref, cart, isDesktop)
+          : _buildEmptyCart(context, isDesktop),
+      bottomNavigationBar:
+          hasItems ? _buildCheckoutBar(context, ref, cart, isDesktop) : null,
     );
   }
 
-  Widget _buildEmptyCart(BuildContext context) {
+  Widget _buildEmptyCart(BuildContext context, bool isDesktop) {
+    final iconSize = isDesktop ? 100.0 : 80.0;
+    final titleSize = isDesktop ? 20.0 : 18.0;
+    final subtitleSize = isDesktop ? 14.0 : 12.0;
+    final buttonPadding = isDesktop ? 24.0 : 16.0;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.shopping_cart_outlined,
-            size: 100.sp,
+            size: iconSize,
             color: Colors.grey[400],
           ),
-          SizedBox(height: 16.h),
+          const SizedBox(height: 16),
           Text(
             'Your cart is empty',
             style: TextStyle(
-              fontSize: 20.sp,
+              fontSize: titleSize,
               fontWeight: FontWeight.bold,
               color: Colors.grey[600],
             ),
           ),
-          SizedBox(height: 8.h),
+          const SizedBox(height: 8),
           Text(
             'Add items to get started',
             style: TextStyle(
-              fontSize: 14.sp,
+              fontSize: subtitleSize,
               color: Colors.grey[500],
             ),
           ),
-          SizedBox(height: 24.h),
+          const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(context);
@@ -84,7 +94,8 @@ class CartScreen extends ConsumerWidget {
             icon: const Icon(Icons.shopping_bag),
             label: const Text('Continue Shopping'),
             style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+              padding: EdgeInsets.symmetric(
+                  horizontal: buttonPadding, vertical: 12),
             ),
           ),
         ],
@@ -92,38 +103,56 @@ class CartScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCartItems(BuildContext context) {
+  Widget _buildCartItems(
+      BuildContext context, WidgetRef ref, Cart cart, bool isDesktop) {
+    final padding = isDesktop ? 16.0 : 12.0;
+
     return ListView.separated(
-      padding: EdgeInsets.all(16.w),
-      itemCount: 3, // Placeholder
-      separatorBuilder: (context, index) => SizedBox(height: 12.h),
+      padding: EdgeInsets.all(padding),
+      itemCount: cart.items.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        return _buildCartItemCard(context, index);
+        final item = cart.items[index];
+        return _buildCartItemCard(context, ref, item, isDesktop);
       },
     );
   }
 
-  Widget _buildCartItemCard(BuildContext context, int index) {
+  Widget _buildCartItemCard(
+      BuildContext context, WidgetRef ref, item, bool isDesktop) {
+    final imageSize = isDesktop ? 80.0 : 60.0;
+    final titleSize = isDesktop ? 16.0 : 14.0;
+    final subtitleSize = isDesktop ? 12.0 : 11.0;
+    final priceSize = isDesktop ? 16.0 : 14.0;
+
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(12.w),
+        padding: EdgeInsets.all(isDesktop ? 12.0 : 8.0),
         child: Row(
           children: [
             // Product Image
             Container(
-              width: 80.w,
-              height: 80.w,
+              width: imageSize,
+              height: imageSize,
               decoration: BoxDecoration(
                 color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(8.r),
+                borderRadius: BorderRadius.circular(8),
+                image: item.materialImageUrl != null
+                    ? DecorationImage(
+                        image: NetworkImage(item.materialImageUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Icon(
-                Icons.inventory_2_outlined,
-                size: 40.sp,
-                color: Colors.grey[400],
-              ),
+              child: item.materialImageUrl == null
+                  ? Icon(
+                      Icons.inventory_2_outlined,
+                      size: imageSize * 0.5,
+                      color: Colors.grey[400],
+                    )
+                  : null,
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: isDesktop ? 12.0 : 8.0),
 
             // Product Details
             Expanded(
@@ -131,33 +160,34 @@ class CartScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Material ${index + 1}',
+                    item.materialName,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16.sp,
+                      fontSize: titleSize,
                     ),
                   ),
-                  SizedBox(height: 4.h),
+                  const SizedBox(height: 4),
                   Text(
-                    'Good condition',
+                    item.condition,
                     style: TextStyle(
-                      fontSize: 12.sp,
+                      fontSize: subtitleSize,
                       color: Colors.grey[600],
                     ),
                   ),
-                  SizedBox(height: 8.h),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '₹${(index + 1) * 99}.00',
+                        '₹${item.unitPrice.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16.sp,
+                          fontSize: priceSize,
                           color: Theme.of(context).primaryColor,
                         ),
                       ),
-                      _buildQuantityControls(context),
+                      _buildQuantityControls(
+                          context, ref, item, isDesktop),
                     ],
                   ),
                 ],
@@ -170,8 +200,9 @@ class CartScreen extends ConsumerWidget {
                 Icons.delete_outline,
                 color: Colors.red[400],
               ),
-              onPressed: () {
-                // Remove item
+              onPressed: () async {
+                final removeFromCart = ref.read(removeFromCartProvider);
+                await removeFromCart(item.id);
               },
             ),
           ],
@@ -180,51 +211,73 @@ class CartScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuantityControls(BuildContext context) {
+  Widget _buildQuantityControls(
+      BuildContext context, WidgetRef ref, item, bool isDesktop) {
+    final iconSize = isDesktop ? 16.0 : 14.0;
+    final textSize = isDesktop ? 14.0 : 12.0;
+    final padding = isDesktop ? 4.0 : 2.0;
+
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8.r),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
             icon: const Icon(Icons.remove),
-            iconSize: 16.sp,
-            padding: EdgeInsets.all(4.w),
+            iconSize: iconSize,
+            padding: EdgeInsets.all(padding),
             constraints: const BoxConstraints(),
-            onPressed: () {
-              // Decrease quantity
-            },
+            onPressed: item.quantity > 1
+                ? () async {
+                    final updateCartQuantity =
+                        ref.read(updateCartQuantityProvider);
+                    await updateCartQuantity(
+                        item.id, item.quantity - 1);
+                  }
+                : null,
           ),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.w),
+            padding: EdgeInsets.symmetric(horizontal: isDesktop ? 8.0 : 6.0),
             child: Text(
-              '2',
+              '${item.quantity}',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 14.sp,
+                fontSize: textSize,
               ),
             ),
           ),
           IconButton(
             icon: const Icon(Icons.add),
-            iconSize: 16.sp,
-            padding: EdgeInsets.all(4.w),
+            iconSize: iconSize,
+            padding: EdgeInsets.all(padding),
             constraints: const BoxConstraints(),
-            onPressed: () {
-              // Increase quantity
-            },
+            onPressed: item.quantity < item.stockAvailable
+                ? () async {
+                    final updateCartQuantity =
+                        ref.read(updateCartQuantityProvider);
+                    await updateCartQuantity(
+                        item.id, item.quantity + 1);
+                  }
+                : null,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCheckoutBar(BuildContext context) {
+  Widget _buildCheckoutBar(
+      BuildContext context, WidgetRef ref, Cart cart, bool isDesktop) {
+    final padding = isDesktop ? 16.0 : 12.0;
+    final smallTextSize = isDesktop ? 14.0 : 12.0;
+    final largeTextSize = isDesktop ? 18.0 : 16.0;
+    final priceSize = isDesktop ? 20.0 : 18.0;
+    final buttonHeight = isDesktop ? 48.0 : 44.0;
+
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -244,77 +297,79 @@ class CartScreen extends ConsumerWidget {
               children: [
                 Text(
                   'Subtotal:',
-                  style: TextStyle(fontSize: 14.sp),
+                  style: TextStyle(fontSize: smallTextSize),
                 ),
                 Text(
-                  '₹594.00',
+                  '₹${cart.subtotal.toStringAsFixed(2)}',
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: smallTextSize,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 4.h),
+            const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Tax (18%):',
-                  style: TextStyle(fontSize: 14.sp),
+                  style: TextStyle(fontSize: smallTextSize),
                 ),
                 Text(
-                  '₹106.92',
+                  '₹${cart.taxAmount.toStringAsFixed(2)}',
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: smallTextSize,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 4.h),
+            const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Shipping:',
-                  style: TextStyle(fontSize: 14.sp),
+                  style: TextStyle(fontSize: smallTextSize),
                 ),
                 Text(
-                  'FREE',
+                  cart.shippingAmount == 0
+                      ? 'FREE'
+                      : '₹${cart.shippingAmount.toStringAsFixed(2)}',
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: smallTextSize,
                     fontWeight: FontWeight.w500,
-                    color: Colors.green,
+                    color: cart.shippingAmount == 0 ? Colors.green : null,
                   ),
                 ),
               ],
             ),
-            Divider(height: 20.h),
+            const Divider(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Total:',
                   style: TextStyle(
-                    fontSize: 18.sp,
+                    fontSize: largeTextSize,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  '₹700.92',
+                  '₹${cart.total.toStringAsFixed(2)}',
                   style: TextStyle(
-                    fontSize: 20.sp,
+                    fontSize: priceSize,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).primaryColor,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 12.h),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              height: 48.h,
+              height: buttonHeight,
               child: ElevatedButton(
                 onPressed: () {
                   // Navigate to checkout
@@ -322,7 +377,7 @@ class CartScreen extends ConsumerWidget {
                 },
                 child: Text(
                   'Proceed to Checkout',
-                  style: TextStyle(fontSize: 16.sp),
+                  style: TextStyle(fontSize: smallTextSize + 2),
                 ),
               ),
             ),

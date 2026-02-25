@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
-import '../models/order.dart';
-import '../providers/order_provider.dart';
+import 'package:reclaim/features/ecommerce/models/order.dart';
+import 'package:reclaim/features/ecommerce/providers/order_provider.dart';
 
 /// Order Detail Screen - Shows complete order information
 class OrderDetailScreen extends ConsumerWidget {

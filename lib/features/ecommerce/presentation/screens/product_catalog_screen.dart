@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../providers/cart_provider.dart';
-import '../providers/product_provider.dart';
+import 'package:reclaim/features/ecommerce/providers/cart_provider.dart';
+import 'package:reclaim/features/ecommerce/providers/product_provider.dart';
 
 /// Product Catalog Screen
 /// 

@@ -1,48 +1,115 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'product.freezed.dart';
-part 'product.g.dart';
-
 /// Product model - extends Material model for e-commerce
-@freezed
-class Product with _$Product {
-  const factory Product({
-    required String id,
-    required String name,
-    required String type,
-    required String quantity,
-    required String condition,
-    required String location,
-    String? imageUrl,
-    String? notes,
-    required String status,
-    required double carbonSaved,
-    String? campusId,
-    String? createdBy,
-    required DateTime createdAt,
-    required DateTime updatedAt,
-    
-    // E-commerce specific fields
-    required double basePrice,
-    required int stockQuantity,
-    required bool isListedForSale,
-    int? irsScore, // Innovation Reuse Score
-    String? lifecycleState,
-    double? confidence,
-    
-    // Additional computed fields
-    List<String>? tags,
-    double? rating,
-    int? reviewCount,
-  }) = _Product;
+class Product {
+  final String id;
+  final String name;
+  final String type;
+  final String quantity;
+  final String condition;
+  final String location;
+  final String? imageUrl;
+  final String? notes;
+  final String status;
+  final double carbonSaved;
+  final String? campusId;
+  final String? createdBy;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
-  factory Product.fromJson(Map<String, dynamic> json) =>
-      _$ProductFromJson(json);
-}
+  // E-commerce specific fields
+  final double basePrice;
+  final int stockQuantity;
+  final bool isListedForSale;
+  final int? irsScore; // Innovation Reuse Score
+  final String? lifecycleState;
+  final double? confidence;
 
-const Product._();
+  // Additional computed fields
+  final List<String>? tags;
+  final double? rating;
+  final int? reviewCount;
 
-extension ProductHelpers on Product {
+  const Product({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.quantity,
+    required this.condition,
+    required this.location,
+    this.imageUrl,
+    this.notes,
+    required this.status,
+    required this.carbonSaved,
+    this.campusId,
+    this.createdBy,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.basePrice,
+    required this.stockQuantity,
+    required this.isListedForSale,
+    this.irsScore,
+    this.lifecycleState,
+    this.confidence,
+    this.tags,
+    this.rating,
+    this.reviewCount,
+  });
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    return Product(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      type: json['type'] as String,
+      quantity: json['quantity'] as String,
+      condition: json['condition'] as String,
+      location: json['location'] as String,
+      imageUrl: json['image_url'] as String?,
+      notes: json['notes'] as String?,
+      status: json['status'] as String,
+      carbonSaved: (json['carbon_saved'] as num).toDouble(),
+      campusId: json['campus_id'] as String?,
+      createdBy: json['created_by'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+      basePrice: (json['base_price'] as num).toDouble(),
+      stockQuantity: json['stock_quantity'] as int,
+      isListedForSale: json['is_listed_for_sale'] as bool,
+      irsScore: json['irs_score'] as int?,
+      lifecycleState: json['lifecycle_state'] as String?,
+      confidence: (json['confidence'] as num?)?.toDouble(),
+      tags: (json['tags'] as List<dynamic>?)?.cast<String>(),
+      rating: (json['rating'] as num?)?.toDouble(),
+      reviewCount: json['review_count'] as int?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'type': type,
+      'quantity': quantity,
+      'condition': condition,
+      'location': location,
+      'image_url': imageUrl,
+      'notes': notes,
+      'status': status,
+      'carbon_saved': carbonSaved,
+      'campus_id': campusId,
+      'created_by': createdBy,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'base_price': basePrice,
+      'stock_quantity': stockQuantity,
+      'is_listed_for_sale': isListedForSale,
+      'irs_score': irsScore,
+      'lifecycle_state': lifecycleState,
+      'confidence': confidence,
+      'tags': tags,
+      'rating': rating,
+      'review_count': reviewCount,
+    };
+  }
+
   /// Check if product is in stock
   bool get isInStock => stockQuantity > 0;
 
@@ -102,21 +169,54 @@ extension ProductHelpers on Product {
 }
 
 /// Product filter options
-@freezed
-class ProductFilters with _$ProductFilters {
-  const factory ProductFilters({
-    List<String>? types,
-    List<String>? conditions,
-    double? minPrice,
-    double? maxPrice,
-    String? campusId,
-    bool? inStockOnly,
-    String? searchQuery,
-    ProductSortOption? sortBy,
-  }) = _ProductFilters;
+class ProductFilters {
+  final List<String>? types;
+  final List<String>? conditions;
+  final double? minPrice;
+  final double? maxPrice;
+  final String? campusId;
+  final bool? inStockOnly;
+  final String? searchQuery;
+  final ProductSortOption? sortBy;
 
-  factory ProductFilters.fromJson(Map<String, dynamic> json) =>
-      _$ProductFiltersFromJson(json);
+  const ProductFilters({
+    this.types,
+    this.conditions,
+    this.minPrice,
+    this.maxPrice,
+    this.campusId,
+    this.inStockOnly,
+    this.searchQuery,
+    this.sortBy,
+  });
+
+  factory ProductFilters.fromJson(Map<String, dynamic> json) {
+    return ProductFilters(
+      types: (json['types'] as List<dynamic>?)?.cast<String>(),
+      conditions: (json['conditions'] as List<dynamic>?)?.cast<String>(),
+      minPrice: (json['min_price'] as num?)?.toDouble(),
+      maxPrice: (json['max_price'] as num?)?.toDouble(),
+      campusId: json['campus_id'] as String?,
+      inStockOnly: json['in_stock_only'] as bool?,
+      searchQuery: json['search_query'] as String?,
+      sortBy: json['sort_by'] != null
+          ? ProductSortOption.values.byName(json['sort_by'] as String)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'types': types,
+      'conditions': conditions,
+      'min_price': minPrice,
+      'max_price': maxPrice,
+      'campus_id': campusId,
+      'in_stock_only': inStockOnly,
+      'search_query': searchQuery,
+      'sort_by': sortBy?.name,
+    };
+  }
 }
 
 /// Sort options for products

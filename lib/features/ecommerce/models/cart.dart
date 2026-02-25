@@ -1,26 +1,44 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'cart.freezed.dart';
-part 'cart.g.dart';
+import 'cart_item.dart';
 
 /// Shopping cart model
-@freezed
-class Cart with _$Cart {
-  const factory Cart({
-    required String id,
-    required String userId,
-    required List<CartItem> items,
-    required DateTime createdAt,
-    required DateTime updatedAt,
-  }) = _Cart;
+class Cart {
+  final String id;
+  final String userId;
+  final List<CartItem> items;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
-  factory Cart.fromJson(Map<String, dynamic> json) => _$CartFromJson(json);
-}
+  const Cart({
+    required this.id,
+    required this.userId,
+    required this.items,
+    required this.createdAt,
+    required this.updatedAt,
+  });
 
-const Cart._();
+  factory Cart.fromJson(Map<String, dynamic> json) {
+    return Cart(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      items: (json['items'] as List<dynamic>?)
+              ?.map((e) => CartItem.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
 
-/// Cart summary calculations
-extension CartCalculations on Cart {
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'items': items.map((e) => e.toJson()).toList(),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
   /// Total number of items in cart
   int get itemCount => items.fold(0, (sum, item) => sum + item.quantity);
 

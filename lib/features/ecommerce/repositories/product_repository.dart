@@ -23,11 +23,11 @@ class ProductRepository {
       // Apply filters
       if (filters != null) {
         if (filters.types != null && filters.types!.isNotEmpty) {
-          query = query.in_('type', filters.types!);
+          query = query.inFilter('type', filters.types!);
         }
 
         if (filters.conditions != null && filters.conditions!.isNotEmpty) {
-          query = query.in_('condition', filters.conditions!);
+          query = query.inFilter('condition', filters.conditions!);
         }
 
         if (filters.minPrice != null) {
@@ -56,39 +56,47 @@ class ProductRepository {
 
         // Apply sorting
         if (filters.sortBy != null) {
+          final sortCol;
+          final sortAsc;
           switch (filters.sortBy!) {
             case ProductSortOption.newest:
-              query = query.order('created_at', ascending: false);
+              sortCol = 'created_at';
+              sortAsc = false;
               break;
             case ProductSortOption.oldest:
-              query = query.order('created_at', ascending: true);
+              sortCol = 'created_at';
+              sortAsc = true;
               break;
             case ProductSortOption.priceLowToHigh:
-              query = query.order('base_price', ascending: true);
+              sortCol = 'base_price';
+              sortAsc = true;
               break;
             case ProductSortOption.priceHighToLow:
-              query = query.order('base_price', ascending: false);
+              sortCol = 'base_price';
+              sortAsc = false;
               break;
             case ProductSortOption.nameAtoZ:
-              query = query.order('name', ascending: true);
+              sortCol = 'name';
+              sortAsc = true;
               break;
             case ProductSortOption.nameZtoA:
-              query = query.order('name', ascending: false);
+              sortCol = 'name';
+              sortAsc = false;
               break;
             case ProductSortOption.carbonSaved:
-              query = query.order('carbon_saved', ascending: false);
+              sortCol = 'carbon_saved';
+              sortAsc = false;
               break;
             default:
-              query = query.order('created_at', ascending: false);
+              sortCol = 'created_at';
+              sortAsc = false;
           }
+          final result = await query.order(sortCol, ascending: sortAsc).range(offset, offset + limit - 1);
+          return (result as List).map((json) => _productFromJson(json)).toList();
         }
-      } else {
-        query = query.order('created_at', ascending: false);
       }
 
-      query = query.range(offset, offset + limit - 1);
-
-      final result = await query;
+      final result = await query.order('created_at', ascending: false).range(offset, offset + limit - 1);
       return (result as List).map((json) => _productFromJson(json)).toList();
     } catch (e) {
       print('Error fetching products: $e');

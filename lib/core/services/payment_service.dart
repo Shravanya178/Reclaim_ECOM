@@ -1,5 +1,5 @@
 import 'package:razorpay_flutter/razorpay_flutter.dart';
-import '../models/payment.dart';
+import 'package:reclaim/features/ecommerce/models/payment.dart';
 
 /// Abstract payment service interface
 abstract class PaymentService {
@@ -40,7 +40,7 @@ class RazorpayPaymentService implements PaymentService {
         },
         'modal': {
           'ondismiss': () {
-            _paymentResult = const PaymentResult.cancelled();
+            _paymentResult = const PaymentCancelled();
           }
         }
       };
@@ -49,9 +49,9 @@ class RazorpayPaymentService implements PaymentService {
 
       // Wait for payment result
       await Future.delayed(const Duration(seconds: 1));
-      return _paymentResult ?? const PaymentResult.cancelled();
+      return _paymentResult ?? const PaymentCancelled();
     } catch (e) {
-      return PaymentResult.failure(
+      return PaymentFailure(
         errorMessage: e.toString(),
       );
     }
@@ -90,7 +90,7 @@ class RazorpayPaymentService implements PaymentService {
   }
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) {
-    _paymentResult = PaymentResult.success(
+    _paymentResult = PaymentSuccess(
       transactionId: response.orderId ?? '',
       paymentId: response.paymentId ?? '',
       signature: response.signature,
@@ -98,7 +98,7 @@ class RazorpayPaymentService implements PaymentService {
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
-    _paymentResult = PaymentResult.failure(
+    _paymentResult = PaymentFailure(
       errorMessage: response.message ?? 'Payment failed',
       errorCode: response.code.toString(),
     );
@@ -135,7 +135,7 @@ class MockPaymentService implements PaymentService {
     await Future.delayed(const Duration(seconds: 2));
 
     // Return success for testing
-    return PaymentResult.success(
+    return PaymentSuccess(
       transactionId: 'test_${DateTime.now().millisecondsSinceEpoch}',
       paymentId: 'pay_${DateTime.now().millisecondsSinceEpoch}',
       signature: 'mock_signature',

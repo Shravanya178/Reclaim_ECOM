@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../models/order.dart';
-import '../providers/cart_provider.dart';
-import '../providers/order_provider.dart';
+import 'package:reclaim/features/ecommerce/models/order.dart';
+import 'package:reclaim/features/ecommerce/providers/cart_provider.dart';
+import 'package:reclaim/features/ecommerce/providers/order_provider.dart';
 
 /// Checkout Screen - Address and payment method selection
 class CheckoutScreen extends ConsumerStatefulWidget {
