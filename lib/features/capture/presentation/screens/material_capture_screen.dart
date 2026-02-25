@@ -16,6 +16,7 @@ class _MaterialCaptureScreenState extends State<MaterialCaptureScreen> {
   bool _isAnalyzing = false;
   HybridAnalysisResult? _result;
   String? _error;
+  bool get _isDesktop => MediaQuery.of(context).size.width > 768;
 
   Future<void> _pickImage(ImageSource source) async {
     setState(() { _error = null; });
@@ -39,40 +40,58 @@ class _MaterialCaptureScreenState extends State<MaterialCaptureScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Capture Materials')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(child: OutlinedButton.icon(onPressed: () => _pickImage(ImageSource.camera), icon: const Icon(Icons.camera_alt), label: const Text('Camera'))),
-                const SizedBox(width: 12),
-                Expanded(child: OutlinedButton.icon(onPressed: () => _pickImage(ImageSource.gallery), icon: const Icon(Icons.photo_library), label: const Text('Gallery'))),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (_imageFile != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(_imageFile!, height: 200, fit: BoxFit.cover),
-              )
-            else
-              Container(
-                height: 200,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: Colors.grey.shade100),
-                child: const Text('No image selected'),
+      backgroundColor: _isDesktop ? Colors.grey.shade100 : Colors.grey.shade50,
+      appBar: AppBar(
+        title: const Text('Capture Materials'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(_isDesktop ? 24 : 16),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 600),
+            child: Container(
+              padding: _isDesktop ? EdgeInsets.all(24) : EdgeInsets.zero,
+              decoration: _isDesktop ? BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+              ) : null,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: OutlinedButton.icon(onPressed: () => _pickImage(ImageSource.camera), icon: const Icon(Icons.camera_alt), label: const Text('Camera'))),
+                      const SizedBox(width: 12),
+                      Expanded(child: OutlinedButton.icon(onPressed: () => _pickImage(ImageSource.gallery), icon: const Icon(Icons.photo_library), label: const Text('Gallery'))),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (_imageFile != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(_imageFile!, height: 200, fit: BoxFit.cover),
+                    )
+                  else
+                    Container(
+                      height: 200,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: Colors.grey.shade100),
+                      child: const Text('No image selected'),
+                    ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(onPressed: _imageFile == null || _isAnalyzing ? null : _analyze, icon: const Icon(Icons.auto_awesome), label: const Text('Analyze')),
+                  const SizedBox(height: 12),
+                  if (_isAnalyzing) const LinearProgressIndicator(),
+                  if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 8),
+                  _buildResults(),
+                ],
               ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(onPressed: _imageFile == null || _isAnalyzing ? null : _analyze, icon: const Icon(Icons.auto_awesome), label: const Text('Analyze')),
-            const SizedBox(height: 12),
-            if (_isAnalyzing) const LinearProgressIndicator(),
-            if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 8),
-            Expanded(child: _buildResults()),
-          ],
+            ),
+          ),
         ),
       ),
     );

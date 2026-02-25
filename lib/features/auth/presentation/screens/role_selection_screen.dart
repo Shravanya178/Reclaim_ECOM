@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/models/user.dart';
@@ -43,166 +42,108 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 768;
+    final isMobile = screenWidth < 480;
+    
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: isDesktop ? const Color(0xFFF5F5F5) : Colors.white,
       appBar: AppBar(
-        title: const Text('Select Your Role'),
+        title: const Text('Select Your Role', style: TextStyle(fontSize: 16)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        foregroundColor: Colors.grey.shade800,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 16.h),
-              
-              Text(
-                'How will you be using ReClaim?',
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              
-              SizedBox(height: 8.h),
-              
-              Text(
-                'Choose your role to customize your experience',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              
-              SizedBox(height: 32.h),
-              
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _roleOptions.length,
-                  itemBuilder: (context, index) {
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              width: double.infinity,
+              constraints: BoxConstraints(maxWidth: isDesktop ? 480 : 500),
+              margin: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 16),
+              padding: EdgeInsets.all(isDesktop ? 28 : 20),
+              decoration: isDesktop ? BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 4))],
+              ) : null,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'How will you use ReClaim?',
+                    style: TextStyle(fontSize: isMobile ? 18 : 20, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Choose your role to customize your experience',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  ...List.generate(_roleOptions.length, (index) {
                     final option = _roleOptions[index];
                     final isSelected = _selectedRole == option.role;
                     
                     return Padding(
-                      padding: EdgeInsets.only(bottom: 16.h),
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedRole = option.role;
-                          });
-                        },
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: InkWell(
+                        onTap: () => setState(() => _selectedRole = option.role),
+                        borderRadius: BorderRadius.circular(12),
                         child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: EdgeInsets.all(20.w),
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: isSelected
-                                ? option.color.withOpacity(0.1)
-                                : Colors.white,
-                            border: Border.all(
-                              color: isSelected
-                                  ? option.color
-                                  : Colors.grey.shade300,
-                              width: isSelected ? 2 : 1,
-                            ),
-                            borderRadius: BorderRadius.circular(16.r),
-                            boxShadow: isSelected
-                                ? [
-                                    BoxShadow(
-                                      color: option.color.withOpacity(0.2),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ]
-                                : [
-                                    BoxShadow(
-                                      color: Colors.grey.shade200,
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
+                            color: isSelected ? option.color.withOpacity(0.08) : Colors.grey.shade50,
+                            border: Border.all(color: isSelected ? option.color : Colors.grey.shade200, width: isSelected ? 2 : 1),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             children: [
                               Container(
-                                width: 60.w,
-                                height: 60.h,
+                                width: 48,
+                                height: 48,
                                 decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? option.color
-                                      : option.color.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12.r),
+                                  color: isSelected ? option.color : option.color.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Icon(
-                                  option.icon,
-                                  size: 30.sp,
-                                  color: isSelected ? Colors.white : option.color,
-                                ),
+                                child: Icon(option.icon, size: 24, color: isSelected ? Colors.white : option.color),
                               ),
-                              
-                              SizedBox(width: 16.w),
-                              
+                              const SizedBox(width: 14),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      option.title,
-                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: isSelected ? option.color : null,
-                                      ),
-                                    ),
-                                    
-                                    SizedBox(height: 4.h),
-                                    
-                                    Text(
-                                      option.subtitle,
-                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        color: Colors.grey.shade600,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    
-                                    SizedBox(height: 8.h),
-                                    
-                                    Text(
-                                      option.description,
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: Colors.grey.shade600,
-                                        height: 1.4,
-                                      ),
-                                    ),
+                                    Text(option.title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isSelected ? option.color : Colors.grey.shade800)),
+                                    const SizedBox(height: 2),
+                                    Text(option.subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                                   ],
                                 ),
                               ),
-                              
                               if (isSelected)
-                                Icon(
-                                  Icons.check_circle,
-                                  color: option.color,
-                                  size: 24.sp,
-                                ),
+                                Icon(Icons.check_circle, color: option.color, size: 22),
                             ],
                           ),
                         ),
                       ),
                     );
-                  },
-                ),
+                  }),
+                  
+                  const SizedBox(height: 16),
+                  
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: ElevatedButton(
+                      onPressed: _selectedRole != null ? _handleContinue : null,
+                      style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0),
+                      child: const Text('Continue', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
               ),
-              
-              SizedBox(height: 24.h),
-              
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _selectedRole != null ? _handleContinue : null,
-                  child: const Text('Continue'),
-                ),
-              ),
-              
-              SizedBox(height: 24.h),
-            ],
+            ),
           ),
         ),
       ),
@@ -211,7 +152,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
   void _handleContinue() {
     if (_selectedRole != null) {
-      // Pass selected role to campus selection
       context.go('/campus-selection', extra: _selectedRole);
     }
   }

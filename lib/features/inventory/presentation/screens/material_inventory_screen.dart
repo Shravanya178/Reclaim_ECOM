@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 class MaterialInventoryScreen extends StatefulWidget {
@@ -12,6 +11,7 @@ class MaterialInventoryScreen extends StatefulWidget {
 class _MaterialInventoryScreenState extends State<MaterialInventoryScreen> {
   String _selectedFilter = 'All';
   String _selectedType = 'All Types';
+  bool get _isDesktop => MediaQuery.of(context).size.width > 768;
   
   final List<MaterialLot> _materialLots = [
     MaterialLot(id: '1', name: 'Arduino Boards', type: 'Electronic', quantity: '5 units', location: 'Lab A - Chemistry', status: MaterialStatus.detected, capturedDate: DateTime.now().subtract(const Duration(hours: 2)), carbonSaved: 0.8),
@@ -26,7 +26,7 @@ class _MaterialInventoryScreenState extends State<MaterialInventoryScreen> {
     final filteredLots = _getFilteredLots();
     
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: _isDesktop ? Colors.grey.shade100 : Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Material Inventory'),
         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -38,69 +38,76 @@ class _MaterialInventoryScreenState extends State<MaterialInventoryScreen> {
           IconButton(icon: const Icon(Icons.filter_list, color: Colors.white), onPressed: _showFilterSheet),
         ],
       ),
-      body: Column(
-        children: [
-          // Status Filters
-          SizedBox(
-            height: 50.h,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              children: ['All', 'Detected', 'Listed', 'Matched', 'In Use', 'Completed'].map((filter) => Padding(
-                padding: EdgeInsets.only(right: 8.w),
-                child: FilterChip(
-                  label: Text(filter),
-                  selected: _selectedFilter == filter,
-                  onSelected: (selected) => setState(() => _selectedFilter = filter),
-                  backgroundColor: Colors.white,
-                  selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                  labelStyle: TextStyle(color: _selectedFilter == filter ? Theme.of(context).colorScheme.primary : Colors.grey.shade700),
-                ),
-              )).toList(),
-            ),
-          ),
-          
-          // Stats Bar
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 16.w),
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12.r), boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 4)]),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem('Total Lots', '${_materialLots.length}', Icons.inventory_2),
-                Container(width: 1, height: 40.h, color: Colors.grey.shade300),
-                _buildStatItem('Carbon Saved', '${_materialLots.fold(0.0, (sum, m) => sum + m.carbonSaved).toStringAsFixed(1)} kg', Icons.eco),
-                Container(width: 1, height: 40.h, color: Colors.grey.shade300),
-                _buildStatItem('Active', '${_materialLots.where((m) => m.status != MaterialStatus.completed).length}', Icons.pending_actions),
-              ],
-            ),
-          ),
-          
-          SizedBox(height: 16.h),
-          
-          // Material List
-          Expanded(
-            child: filteredLots.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.inventory_2_outlined, size: 64.sp, color: Colors.grey.shade400),
-                        SizedBox(height: 16.h),
-                        Text('No materials found', style: TextStyle(fontSize: 18.sp, color: Colors.grey.shade600)),
-                        SizedBox(height: 8.h),
-                        Text('Capture materials to see them here', style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade500)),
-                      ],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              SizedBox(height: _isDesktop ? 24 : 0),
+              // Status Filters
+              SizedBox(
+                height: 50,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: _isDesktop ? 0 : 16, vertical: 8),
+                  children: ['All', 'Detected', 'Listed', 'Matched', 'In Use', 'Completed'].map((filter) => Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(filter),
+                      selected: _selectedFilter == filter,
+                      onSelected: (selected) => setState(() => _selectedFilter = filter),
+                      backgroundColor: Colors.white,
+                      selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                      labelStyle: TextStyle(color: _selectedFilter == filter ? Theme.of(context).colorScheme.primary : Colors.grey.shade700),
                     ),
-                  )
-                : ListView.builder(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    itemCount: filteredLots.length,
-                    itemBuilder: (context, index) => _buildMaterialCard(filteredLots[index]),
-                  ),
+                  )).toList(),
+                ),
+              ),
+              
+              // Stats Bar
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: _isDesktop ? 0 : 16),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)]),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatItem('Total Lots', '${_materialLots.length}', Icons.inventory_2),
+                    Container(width: 1, height: 40, color: Colors.grey.shade300),
+                    _buildStatItem('Carbon Saved', '${_materialLots.fold(0.0, (sum, m) => sum + m.carbonSaved).toStringAsFixed(1)} kg', Icons.eco),
+                    Container(width: 1, height: 40, color: Colors.grey.shade300),
+                    _buildStatItem('Active', '${_materialLots.where((m) => m.status != MaterialStatus.completed).length}', Icons.pending_actions),
+                  ],
+                ),
+              ),
+              
+              SizedBox(height: 16),
+              
+              // Material List
+              Expanded(
+                child: filteredLots.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade400),
+                            SizedBox(height: 16),
+                            Text('No materials found', style: TextStyle(fontSize: 18, color: Colors.grey.shade600)),
+                            SizedBox(height: 8),
+                            Text('Capture materials to see them here', style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: EdgeInsets.symmetric(horizontal: _isDesktop ? 0 : 16),
+                        itemCount: filteredLots.length,
+                        itemBuilder: (context, index) => _buildMaterialCard(filteredLots[index]),
+                      ),
+              ),
+              SizedBox(height: _isDesktop ? 24 : 0),
+            ],
           ),
-        ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/lab-dashboard/capture'),
@@ -124,59 +131,59 @@ class _MaterialInventoryScreenState extends State<MaterialInventoryScreen> {
   Widget _buildStatItem(String label, String value, IconData icon) {
     return Column(
       children: [
-        Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20.sp),
-        SizedBox(height: 4.h),
-        Text(value, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-        Text(label, style: TextStyle(fontSize: 11.sp, color: Colors.grey.shade600)),
+        Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
+        SizedBox(height: 4),
+        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
       ],
     );
   }
 
   Widget _buildMaterialCard(MaterialLot material) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12.r), boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 4, offset: const Offset(0, 2))]),
+      margin: EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 4, offset: const Offset(0, 2))]),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () {},
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
-                      width: 48.w, height: 48.h,
-                      decoration: BoxDecoration(color: _getMaterialColor(material.type).withOpacity(0.1), borderRadius: BorderRadius.circular(10.r)),
-                      child: Icon(_getMaterialIcon(material.type), color: _getMaterialColor(material.type), size: 24.sp),
+                      width: 48, height: 48,
+                      decoration: BoxDecoration(color: _getMaterialColor(material.type).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                      child: Icon(_getMaterialIcon(material.type), color: _getMaterialColor(material.type), size: 24),
                     ),
-                    SizedBox(width: 12.w),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(material.name, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-                          SizedBox(height: 2.h),
-                          Text('${material.type} • ${material.quantity}', style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600)),
+                          Text(material.name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
+                          SizedBox(height: 2),
+                          Text('${material.type} • ${material.quantity}', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
                         ],
                       ),
                     ),
                     _buildStatusBadge(material.status),
                   ],
                 ),
-                SizedBox(height: 12.h),
+                SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.location_on_outlined, size: 14.sp, color: Colors.grey.shade500),
-                    SizedBox(width: 4.w),
-                    Text(material.location, style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade500)),
+                    Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade500),
+                    SizedBox(width: 4),
+                    Text(material.location, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
                     const Spacer(),
-                    Icon(Icons.eco_outlined, size: 14.sp, color: Colors.green),
-                    SizedBox(width: 4.w),
-                    Text('${material.carbonSaved} kg CO₂ saved', style: TextStyle(fontSize: 12.sp, color: Colors.green.shade700, fontWeight: FontWeight.w500)),
+                    Icon(Icons.eco_outlined, size: 14, color: Colors.green),
+                    SizedBox(width: 4),
+                    Text('${material.carbonSaved} kg CO₂ saved', style: TextStyle(fontSize: 12, color: Colors.green.shade700, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ],
@@ -198,9 +205,9 @@ class _MaterialInventoryScreenState extends State<MaterialInventoryScreen> {
       case MaterialStatus.completed: color = Colors.green; text = 'Completed'; break;
     }
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20.r)),
-      child: Text(text, style: TextStyle(color: color, fontSize: 12.sp, fontWeight: FontWeight.w600)),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+      child: Text(text, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
     );
   }
 
@@ -227,24 +234,24 @@ class _MaterialInventoryScreenState extends State<MaterialInventoryScreen> {
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20.r))),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => Container(
-        padding: EdgeInsets.all(20.w),
+        padding: EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Filter by Type', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-            SizedBox(height: 16.h),
+            SizedBox(height: 16),
             Wrap(
-              spacing: 8.w,
+              spacing: 8,
               children: ['All Types', 'Electronic', 'Metal', 'Plastic', 'Glass'].map((type) => ChoiceChip(
                 label: Text(type),
                 selected: _selectedType == type,
                 onSelected: (selected) { setState(() => _selectedType = type); Navigator.pop(context); },
               )).toList(),
             ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 20),
           ],
         ),
       ),

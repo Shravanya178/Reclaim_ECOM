@@ -30,11 +30,14 @@ class CartScreen extends ConsumerWidget {
   Widget _buildCartContent(BuildContext context, WidgetRef ref, Cart? cart) {
     final hasItems = cart != null && cart.isNotEmpty;
     final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth > 600;
+    final isDesktop = screenWidth > 768;
 
     return Scaffold(
+      backgroundColor: isDesktop ? Colors.grey.shade100 : Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('My Cart'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
         actions: [
           if (hasItems)
             TextButton(
@@ -42,7 +45,7 @@ class CartScreen extends ConsumerWidget {
                 final clearCart = ref.read(clearCartProvider);
                 await clearCart(cart.id);
               },
-              child: const Text('Clear All'),
+              child: const Text('Clear All', style: TextStyle(color: Colors.white)),
             ),
         ],
       ),
@@ -105,16 +108,21 @@ class CartScreen extends ConsumerWidget {
 
   Widget _buildCartItems(
       BuildContext context, WidgetRef ref, Cart cart, bool isDesktop) {
-    final padding = isDesktop ? 16.0 : 12.0;
+    final padding = isDesktop ? 24.0 : 16.0;
 
-    return ListView.separated(
-      padding: EdgeInsets.all(padding),
-      itemCount: cart.items.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = cart.items[index];
-        return _buildCartItemCard(context, ref, item, isDesktop);
-      },
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 700),
+        child: ListView.separated(
+          padding: EdgeInsets.all(padding),
+          itemCount: cart.items.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final item = cart.items[index];
+            return _buildCartItemCard(context, ref, item, isDesktop);
+          },
+        ),
+      ),
     );
   }
 

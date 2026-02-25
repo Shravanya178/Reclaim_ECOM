@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 class OpportunitiesDashboardScreen extends StatefulWidget {
@@ -10,6 +9,8 @@ class OpportunitiesDashboardScreen extends StatefulWidget {
 }
 
 class _OpportunitiesDashboardScreenState extends State<OpportunitiesDashboardScreen> {
+  bool get _isDesktop => MediaQuery.of(context).size.width > 768;
+  
   final List<OpportunityCard> _opportunities = [
     OpportunityCard(id: '1', materialName: 'Arduino Boards (5 units)', materialType: 'Electronic', suggestedProjects: ['Smart Traffic System', 'Home Automation Hub', 'IoT Weather Station'], topMatchStudent: 'Rahul Sharma', matchPercentage: 92, carbonImpact: 1.8, confidence: 0.94),
     OpportunityCard(id: '2', materialName: 'Copper Wire Spools (3kg)', materialType: 'Metal', suggestedProjects: ['PCB Prototyping', 'Motor Rewinding', 'Antenna Design'], topMatchStudent: 'Priya Patel', matchPercentage: 87, carbonImpact: 2.4, confidence: 0.89),
@@ -20,7 +21,7 @@ class _OpportunitiesDashboardScreenState extends State<OpportunitiesDashboardScr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: _isDesktop ? Colors.grey.shade100 : Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Opportunity Cards'),
         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -32,57 +33,66 @@ class _OpportunitiesDashboardScreenState extends State<OpportunitiesDashboardScr
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: () {}),
         ],
       ),
-      body: Column(
-        children: [
-          // Hero Stats Banner
-          Container(
-            width: double.infinity,
-            margin: EdgeInsets.all(16.w),
-            padding: EdgeInsets.all(20.w),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withOpacity(0.8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-              borderRadius: BorderRadius.circular(16.r),
-            ),
-            child: Column(
-              children: [
-                Row(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 900),
+          child: Column(
+            children: [
+              SizedBox(height: _isDesktop ? 24 : 0),
+              // Hero Stats Banner
+              Container(
+                width: double.infinity,
+                margin: EdgeInsets.symmetric(horizontal: _isDesktop ? 0 : 16, vertical: _isDesktop ? 0 : 16),
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withOpacity(0.8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
                   children: [
-                    Icon(Icons.auto_awesome, color: Colors.white, size: 28.sp),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Text(
-                        'AI-Generated Opportunities',
-                        style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    Row(
+                      children: [
+                        Icon(Icons.auto_awesome, color: Colors.white, size: 28),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'AI-Generated Opportunities',
+                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                    Wrap(
+                      alignment: WrapAlignment.spaceEvenly,
+                      spacing: 24,
+                      runSpacing: 8,
+                      children: [
+                        _buildStatColumn('Active', '${_opportunities.length}', Colors.white),
+                        _buildStatColumn('Potential CO₂', '${_opportunities.fold(0.0, (sum, o) => sum + o.carbonImpact).toStringAsFixed(1)}kg', Colors.white),
+                        _buildStatColumn('Avg Match', '${(_opportunities.fold(0, (sum, o) => sum + o.matchPercentage) / _opportunities.length).round()}%', Colors.white),
+                      ],
                     ),
                   ],
                 ),
-                SizedBox(height: 16.h),
-                Wrap(
-                  alignment: WrapAlignment.spaceEvenly,
-                  spacing: 12.w,
-                  runSpacing: 8.h,
-                  children: [
-                    _buildStatColumn('Active', '${_opportunities.length}', Colors.white),
-                    _buildStatColumn('Potential CO₂', '${_opportunities.fold(0.0, (sum, o) => sum + o.carbonImpact).toStringAsFixed(1)}kg', Colors.white),
-                    _buildStatColumn('Avg Match', '${(_opportunities.fold(0, (sum, o) => sum + o.matchPercentage) / _opportunities.length).round()}%', Colors.white),
-                  ],
+              ),
+              
+              SizedBox(height: _isDesktop ? 24 : 0),
+              
+              // Opportunity Cards List
+              Expanded(
+                child: ListView.builder(
+                  padding: EdgeInsets.symmetric(horizontal: _isDesktop ? 0 : 16),
+                  itemCount: _opportunities.length,
+                  itemBuilder: (context, index) => _buildOpportunityCard(_opportunities[index]),
                 ),
-              ],
-            ),
+              ),
+              SizedBox(height: _isDesktop ? 24 : 0),
+            ],
           ),
-          
-          // Opportunity Cards List
-          Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              itemCount: _opportunities.length,
-              itemBuilder: (context, index) => _buildOpportunityCard(_opportunities[index]),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -90,46 +100,46 @@ class _OpportunitiesDashboardScreenState extends State<OpportunitiesDashboardScr
   Widget _buildStatColumn(String label, String value, Color color) {
     return Column(
       children: [
-        Text(value, style: TextStyle(color: color, fontSize: 20.sp, fontWeight: FontWeight.bold)),
-        SizedBox(height: 4.h),
-        Text(label, style: TextStyle(color: color.withOpacity(0.8), fontSize: 12.sp)),
+        Text(value, style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold)),
+        SizedBox(height: 4),
+        Text(label, style: TextStyle(color: color.withOpacity(0.8), fontSize: 12)),
       ],
     );
   }
 
   Widget _buildOpportunityCard(OpportunityCard opportunity) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16.r), boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 8, offset: const Offset(0, 2))]),
+      margin: EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 8, offset: const Offset(0, 2))]),
       child: Column(
         children: [
           // Header with Material Info
           Container(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: _getMaterialColor(opportunity.materialType).withOpacity(0.05),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 50.w, height: 50.h,
-                  decoration: BoxDecoration(color: _getMaterialColor(opportunity.materialType).withOpacity(0.15), borderRadius: BorderRadius.circular(12.r)),
-                  child: Icon(_getMaterialIcon(opportunity.materialType), color: _getMaterialColor(opportunity.materialType), size: 26.sp),
+                  width: 50, height: 50,
+                  decoration: BoxDecoration(color: _getMaterialColor(opportunity.materialType).withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                  child: Icon(_getMaterialIcon(opportunity.materialType), color: _getMaterialColor(opportunity.materialType), size: 26),
                 ),
-                SizedBox(width: 12.w),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(opportunity.materialName, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-                      SizedBox(height: 4.h),
+                      Text(opportunity.materialName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
+                      SizedBox(height: 4),
                       Row(
                         children: [
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                            decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(4.r)),
-                            child: Text('${(opportunity.confidence * 100).toInt()}% AI Confidence', style: TextStyle(color: Colors.green.shade700, fontSize: 10.sp, fontWeight: FontWeight.w600)),
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(4)),
+                            child: Text('${(opportunity.confidence * 100).toInt()}% AI Confidence', style: TextStyle(color: Colors.green.shade700, fontSize: 10, fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
@@ -142,8 +152,8 @@ class _OpportunitiesDashboardScreenState extends State<OpportunitiesDashboardScr
                     children: [
                       Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: [Icon(Icons.eco, color: Colors.green, size: 14.sp), SizedBox(width: 2.w), Flexible(child: Text('${opportunity.carbonImpact} kg', style: TextStyle(color: Colors.green.shade700, fontSize: 11.sp, fontWeight: FontWeight.bold)))]),
-                      Text('CO₂ savings', style: TextStyle(color: Colors.grey.shade500, fontSize: 9.sp)),
+                        children: [Icon(Icons.eco, color: Colors.green, size: 14), SizedBox(width: 2), Flexible(child: Text('${opportunity.carbonImpact} kg', style: TextStyle(color: Colors.green.shade700, fontSize: 11, fontWeight: FontWeight.bold)))]),
+                      Text('CO₂ savings', style: TextStyle(color: Colors.grey.shade500, fontSize: 9)),
                     ],
                   ),
                 ),
@@ -153,24 +163,24 @@ class _OpportunitiesDashboardScreenState extends State<OpportunitiesDashboardScr
           
           // Suggested Projects
           Padding(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Suggested Projects', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
-                SizedBox(height: 8.h),
+                Text('Suggested Projects', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+                SizedBox(height: 8),
                 Wrap(
-                  spacing: 8.w,
-                  runSpacing: 8.h,
+                  spacing: 8,
+                  runSpacing: 8,
                   children: opportunity.suggestedProjects.map((project) => Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                    decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3), borderRadius: BorderRadius.circular(20.r)),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3), borderRadius: BorderRadius.circular(20)),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.lightbulb_outline, size: 14.sp, color: Theme.of(context).colorScheme.primary),
-                        SizedBox(width: 4.w),
-                        Text(project, style: TextStyle(fontSize: 12.sp, color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w500)),
+                        Icon(Icons.lightbulb_outline, size: 14, color: Theme.of(context).colorScheme.primary),
+                        SizedBox(width: 4),
+                        Text(project, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w500)),
                       ],
                     ),
                   )).toList(),
@@ -181,29 +191,29 @@ class _OpportunitiesDashboardScreenState extends State<OpportunitiesDashboardScr
           
           // Top Match Student
           Container(
-            margin: EdgeInsets.symmetric(horizontal: 16.w),
-            padding: EdgeInsets.all(12.w),
-            decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10.r)),
+            margin: EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10)),
             child: Row(
               children: [
-                CircleAvatar(radius: 18.r, backgroundColor: Theme.of(context).colorScheme.primaryContainer, child: Text(opportunity.topMatchStudent[0], style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary))),
-                SizedBox(width: 12.w),
+                CircleAvatar(radius: 18, backgroundColor: Theme.of(context).colorScheme.primaryContainer, child: Text(opportunity.topMatchStudent[0], style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary))),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Top Match', style: TextStyle(fontSize: 10.sp, color: Colors.grey.shade500)),
-                      Text(opportunity.topMatchStudent, style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+                      Text('Top Match', style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                      Text(opportunity.topMatchStudent, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
                     ],
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withOpacity(0.8)]),
-                    borderRadius: BorderRadius.circular(20.r),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text('${opportunity.matchPercentage}% Match', style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+                  child: Text('${opportunity.matchPercentage}% Match', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -211,7 +221,7 @@ class _OpportunitiesDashboardScreenState extends State<OpportunitiesDashboardScr
           
           // Action Buttons
           Padding(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(16),
             child: Row(
               children: [
                 Expanded(
@@ -219,17 +229,17 @@ class _OpportunitiesDashboardScreenState extends State<OpportunitiesDashboardScr
                     onPressed: () => _rejectOpportunity(opportunity),
                     icon: const Icon(Icons.close),
                     label: const Text('Reject'),
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.red, padding: EdgeInsets.symmetric(vertical: 12.h)),
+                    style: OutlinedButton.styleFrom(foregroundColor: Colors.red, padding: EdgeInsets.symmetric(vertical: 12)),
                   ),
                 ),
-                SizedBox(width: 12.w),
+                SizedBox(width: 12),
                 Expanded(
                   flex: 2,
                   child: ElevatedButton.icon(
                     onPressed: () => _confirmOpportunity(opportunity),
                     icon: const Icon(Icons.check),
                     label: const Text('Confirm & Match'),
-                    style: ElevatedButton.styleFrom(padding: EdgeInsets.symmetric(vertical: 12.h)),
+                    style: ElevatedButton.styleFrom(padding: EdgeInsets.symmetric(vertical: 12)),
                   ),
                 ),
               ],

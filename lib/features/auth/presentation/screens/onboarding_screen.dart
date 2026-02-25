@@ -42,7 +42,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
     final isDesktop = screenWidth > 600;
     final maxWidth = isDesktop ? 600.0 : screenWidth;
     

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 class BarterOpportunitiesScreen extends StatefulWidget {
@@ -11,6 +10,7 @@ class BarterOpportunitiesScreen extends StatefulWidget {
 
 class _BarterOpportunitiesScreenState extends State<BarterOpportunitiesScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool get _isDesktop => MediaQuery.of(context).size.width > 768;
   
   final List<BarterOpportunity> _opportunities = [
     BarterOpportunity(id: '1', labName: 'Lab A - Chemistry', skillRequired: 'Arduino Programming', projectDescription: 'Help setup IoT sensors for air quality monitoring', hoursNeeded: 4, materialsOffered: ['Arduino Nano (2)', 'Gas Sensors (3)', 'Breadboard'], postedBy: 'Dr. Sharma', status: BarterStatus.open),
@@ -34,7 +34,7 @@ class _BarterOpportunitiesScreenState extends State<BarterOpportunitiesScreen> w
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: _isDesktop ? Colors.grey.shade100 : Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Skill Barter'),
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -49,46 +49,54 @@ class _BarterOpportunitiesScreenState extends State<BarterOpportunitiesScreen> w
           tabs: const [Tab(text: 'Available'), Tab(text: 'Applied'), Tab(text: 'Approved')],
         ),
       ),
-      body: Column(
-        children: [
-          // Info Banner
-          Container(
-            width: double.infinity,
-            margin: EdgeInsets.all(16.w),
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [Colors.purple.shade400, Colors.purple.shade300], begin: Alignment.topLeft, end: Alignment.bottomRight),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.swap_horiz, color: Colors.white, size: 32.sp),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Exchange Skills for Materials', style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 4.h),
-                      Text('Help labs with your skills and get materials for your projects!', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12.sp)),
-                    ],
-                  ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              SizedBox(height: _isDesktop ? 24 : 0),
+              // Info Banner
+              Container(
+                width: double.infinity,
+                margin: EdgeInsets.symmetric(horizontal: _isDesktop ? 0 : 16, vertical: _isDesktop ? 0 : 16),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [Colors.purple.shade400, Colors.purple.shade300], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    Icon(Icons.swap_horiz, color: Colors.white, size: 32),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Exchange Skills for Materials', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('Help labs with your skills and get materials for your projects!', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              SizedBox(height: _isDesktop ? 16 : 0),
+              
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildOpportunityList(_opportunities.where((o) => o.status == BarterStatus.open).toList()),
+                    _buildOpportunityList(_opportunities.where((o) => o.status == BarterStatus.applied).toList()),
+                    _buildOpportunityList(_opportunities.where((o) => o.status == BarterStatus.approved).toList()),
+                  ],
+                ),
+              ),
+            ],
           ),
-          
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildOpportunityList(_opportunities.where((o) => o.status == BarterStatus.open).toList()),
-                _buildOpportunityList(_opportunities.where((o) => o.status == BarterStatus.applied).toList()),
-                _buildOpportunityList(_opportunities.where((o) => o.status == BarterStatus.approved).toList()),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -99,15 +107,15 @@ class _BarterOpportunitiesScreenState extends State<BarterOpportunitiesScreen> w
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.swap_horiz, size: 64.sp, color: Colors.grey.shade400),
-            SizedBox(height: 16.h),
-            Text('No opportunities yet', style: TextStyle(fontSize: 18.sp, color: Colors.grey.shade600)),
+            Icon(Icons.swap_horiz, size: 64, color: Colors.grey.shade400),
+            SizedBox(height: 16),
+            Text('No opportunities yet', style: TextStyle(fontSize: 18, color: Colors.grey.shade600)),
           ],
         ),
       );
     }
     return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.symmetric(horizontal: _isDesktop ? 0 : 16),
       itemCount: opportunities.length,
       itemBuilder: (context, index) => _buildOpportunityCard(opportunities[index]),
     );
@@ -115,33 +123,33 @@ class _BarterOpportunitiesScreenState extends State<BarterOpportunitiesScreen> w
 
   Widget _buildOpportunityCard(BarterOpportunity opportunity) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16.r), boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 4, offset: const Offset(0, 2))]),
+      margin: EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 4, offset: const Offset(0, 2))]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
           Container(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.purple.shade50,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 48.w, height: 48.h,
-                  decoration: BoxDecoration(color: Colors.purple.shade100, borderRadius: BorderRadius.circular(10.r)),
-                  child: Icon(Icons.science, color: Colors.purple.shade700, size: 24.sp),
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(color: Colors.purple.shade100, borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.science, color: Colors.purple.shade700, size: 24),
                 ),
-                SizedBox(width: 12.w),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(opportunity.labName, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-                      SizedBox(height: 2.h),
-                      Text('Posted by ${opportunity.postedBy}', style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600)),
+                      Text(opportunity.labName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
+                      SizedBox(height: 2),
+                      Text('Posted by ${opportunity.postedBy}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                     ],
                   ),
                 ),
@@ -152,66 +160,66 @@ class _BarterOpportunitiesScreenState extends State<BarterOpportunitiesScreen> w
           
           // Content
           Padding(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Skill Required
                 Row(
                   children: [
-                    Icon(Icons.psychology, size: 18.sp, color: Theme.of(context).colorScheme.primary),
-                    SizedBox(width: 8.w),
-                    Text('Skill Needed:', style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600)),
-                    SizedBox(width: 8.w),
+                    Icon(Icons.psychology, size: 18, color: Theme.of(context).colorScheme.primary),
+                    SizedBox(width: 8),
+                    Text('Skill Needed:', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                    SizedBox(width: 8),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(20.r)),
-                      child: Text(opportunity.skillRequired, style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary)),
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(20)),
+                      child: Text(opportunity.skillRequired, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary)),
                     ),
                   ],
                 ),
                 
-                SizedBox(height: 12.h),
+                SizedBox(height: 12),
                 
                 // Description
-                Text(opportunity.projectDescription, style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade700)),
+                Text(opportunity.projectDescription, style: TextStyle(fontSize: 14, color: Colors.grey.shade700)),
                 
-                SizedBox(height: 12.h),
+                SizedBox(height: 12),
                 
                 // Time Commitment
                 Row(
                   children: [
-                    Icon(Icons.schedule, size: 16.sp, color: Colors.grey.shade500),
-                    SizedBox(width: 4.w),
-                    Text('${opportunity.hoursNeeded} hours estimated', style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600)),
+                    Icon(Icons.schedule, size: 16, color: Colors.grey.shade500),
+                    SizedBox(width: 4),
+                    Text('${opportunity.hoursNeeded} hours estimated', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                   ],
                 ),
                 
-                SizedBox(height: 16.h),
+                SizedBox(height: 16),
                 
                 // Materials Offered
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.all(12.w),
-                  decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8.r)),
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.card_giftcard, size: 16.sp, color: Colors.green.shade700),
-                          SizedBox(width: 6.w),
-                          Text('Materials You\'ll Receive:', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: Colors.green.shade700)),
+                          Icon(Icons.card_giftcard, size: 16, color: Colors.green.shade700),
+                          SizedBox(width: 6),
+                          Text('Materials You\'ll Receive:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.green.shade700)),
                         ],
                       ),
-                      SizedBox(height: 8.h),
+                      SizedBox(height: 8),
                       Wrap(
-                        spacing: 6.w,
-                        runSpacing: 6.h,
+                        spacing: 6,
+                        runSpacing: 6,
                         children: opportunity.materialsOffered.map((m) => Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r), border: Border.all(color: Colors.green.shade200)),
-                          child: Text(m, style: TextStyle(fontSize: 11.sp, color: Colors.green.shade800)),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.green.shade200)),
+                          child: Text(m, style: TextStyle(fontSize: 11, color: Colors.green.shade800)),
                         )).toList(),
                       ),
                     ],
@@ -224,11 +232,11 @@ class _BarterOpportunitiesScreenState extends State<BarterOpportunitiesScreen> w
           // Action Buttons
           if (opportunity.status == BarterStatus.open)
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Row(
                 children: [
                   Expanded(child: OutlinedButton(onPressed: () {}, child: const Text('View Details'))),
-                  SizedBox(width: 12.w),
+                  SizedBox(width: 12),
                   Expanded(flex: 2, child: ElevatedButton.icon(onPressed: () => _applyForBarter(opportunity), icon: const Icon(Icons.send), label: const Text('Apply'))),
                 ],
               ),
@@ -236,7 +244,7 @@ class _BarterOpportunitiesScreenState extends State<BarterOpportunitiesScreen> w
           
           if (opportunity.status == BarterStatus.approved)
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -261,9 +269,9 @@ class _BarterOpportunitiesScreenState extends State<BarterOpportunitiesScreen> w
       case BarterStatus.approved: color = Colors.green; text = 'Approved'; break;
     }
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20.r)),
-      child: Text(text, style: TextStyle(color: color, fontSize: 12.sp, fontWeight: FontWeight.w600)),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+      child: Text(text, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
     );
   }
 
@@ -277,8 +285,8 @@ class _BarterOpportunitiesScreenState extends State<BarterOpportunitiesScreen> w
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('You\'re applying to help ${opportunity.labName} with ${opportunity.skillRequired}.'),
-            SizedBox(height: 16.h),
-            TextField(maxLines: 3, decoration: InputDecoration(labelText: 'Why are you a good fit?', hintText: 'Describe your experience...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)))),
+            SizedBox(height: 16),
+            TextField(maxLines: 3, decoration: InputDecoration(labelText: 'Why are you a good fit?', hintText: 'Describe your experience...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)))),
           ],
         ),
         actions: [

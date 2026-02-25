@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -19,12 +18,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     NotificationItem(id: '6', type: NotificationType.opportunity, title: 'New Materials Nearby', message: '3 new electronic components available in Lab A Chemistry.', timestamp: DateTime.now().subtract(const Duration(days: 3)), isRead: true),
   ];
 
+  bool get _isDesktop => MediaQuery.of(context).size.width > 768;
+
   @override
   Widget build(BuildContext context) {
     final unreadCount = _notifications.where((n) => !n.isRead).length;
     
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: _isDesktop ? Colors.grey.shade100 : Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Notifications'),
         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -47,37 +48,50 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ],
       ),
-      body: _notifications.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.notifications_none, size: 64.sp, color: Colors.grey.shade400),
-                  SizedBox(height: 16.h),
-                  Text('No notifications', style: TextStyle(fontSize: 18.sp, color: Colors.grey.shade600)),
-                  SizedBox(height: 8.h),
-                  Text('You\'re all caught up!', style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade500)),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: EdgeInsets.symmetric(vertical: 8.h),
-              itemCount: _notifications.length,
-              itemBuilder: (context, index) {
-                final notification = _notifications[index];
-                final showDateHeader = index == 0 || !_isSameDay(notification.timestamp, _notifications[index - 1].timestamp);
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (showDateHeader) Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-                      child: Text(_formatDateHeader(notification.timestamp), style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: Colors.grey.shade600)),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 700),
+          child: Container(
+            margin: _isDesktop ? EdgeInsets.all(24) : EdgeInsets.zero,
+            decoration: _isDesktop ? BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+            ) : null,
+            child: _notifications.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.notifications_none, size: 64, color: Colors.grey.shade400),
+                        SizedBox(height: 16),
+                        Text('No notifications', style: TextStyle(fontSize: 18, color: Colors.grey.shade600)),
+                        SizedBox(height: 8),
+                        Text('You\'re all caught up!', style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+                      ],
                     ),
-                    _buildNotificationItem(notification),
-                  ],
-                );
-              },
-            ),
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    itemCount: _notifications.length,
+                    itemBuilder: (context, index) {
+                      final notification = _notifications[index];
+                      final showDateHeader = index == 0 || !_isSameDay(notification.timestamp, _notifications[index - 1].timestamp);
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (showDateHeader) Padding(
+                            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                            child: Text(_formatDateHeader(notification.timestamp), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade600)),
+                          ),
+                          _buildNotificationItem(notification),
+                        ],
+                      );
+                    },
+                  ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -89,7 +103,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       background: Container(
         color: Colors.red,
         alignment: Alignment.centerRight,
-        padding: EdgeInsets.only(right: 20.w),
+        padding: EdgeInsets.only(right: 20),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       child: Material(
@@ -97,31 +111,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: InkWell(
           onTap: () => _handleNotificationTap(notification),
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade100))),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 44.w, height: 44.h,
-                  decoration: BoxDecoration(color: _getTypeColor(notification.type).withOpacity(0.1), borderRadius: BorderRadius.circular(10.r)),
-                  child: Icon(_getTypeIcon(notification.type), color: _getTypeColor(notification.type), size: 22.sp),
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(color: _getTypeColor(notification.type).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                  child: Icon(_getTypeIcon(notification.type), color: _getTypeColor(notification.type), size: 22),
                 ),
-                SizedBox(width: 12.w),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Expanded(child: Text(notification.title, style: TextStyle(fontSize: 14.sp, fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.bold, color: Colors.grey.shade800))),
-                          if (!notification.isRead) Container(width: 8.w, height: 8.h, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, shape: BoxShape.circle)),
+                          Expanded(child: Text(notification.title, style: TextStyle(fontSize: 14, fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.bold, color: Colors.grey.shade800))),
+                          if (!notification.isRead) Container(width: 8, height: 8, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, shape: BoxShape.circle)),
                         ],
                       ),
-                      SizedBox(height: 4.h),
-                      Text(notification.message, style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600), maxLines: 2, overflow: TextOverflow.ellipsis),
-                      SizedBox(height: 6.h),
-                      Text(_formatTimestamp(notification.timestamp), style: TextStyle(fontSize: 11.sp, color: Colors.grey.shade500)),
+                      SizedBox(height: 4),
+                      Text(notification.message, style: TextStyle(fontSize: 13, color: Colors.grey.shade600), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      SizedBox(height: 6),
+                      Text(_formatTimestamp(notification.timestamp), style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                     ],
                   ),
                 ),

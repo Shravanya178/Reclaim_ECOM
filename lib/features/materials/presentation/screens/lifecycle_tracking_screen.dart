@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 class LifecycleTrackingScreen extends StatefulWidget {
@@ -55,9 +54,9 @@ class _LifecycleTrackingScreenState extends State<LifecycleTrackingScreen> {
           // Material Selector
           Container(
             width: double.infinity,
-            margin: EdgeInsets.all(16.w),
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12.r), boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 4)]),
+            margin: EdgeInsets.all(16),
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 4)]),
             child: DropdownButton<String>(
               value: _selectedMaterial,
               isExpanded: true,
@@ -71,45 +70,45 @@ class _LifecycleTrackingScreenState extends State<LifecycleTrackingScreen> {
           // Progress Overview
           Container(
             width: double.infinity,
-            margin: EdgeInsets.symmetric(horizontal: 16.w),
-            padding: EdgeInsets.all(16.w),
+            margin: EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withOpacity(0.8)]),
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 56.w, height: 56.h,
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(28.r)),
-                  child: Center(child: Text('${lifecycle.length}', style: TextStyle(color: Colors.white, fontSize: 24.sp, fontWeight: FontWeight.bold))),
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(28)),
+                  child: Center(child: Text('${lifecycle.length}', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold))),
                 ),
-                SizedBox(width: 16.w),
+                SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Lifecycle Events', style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 4.h),
-                      Text('Current status: ${lifecycle.isNotEmpty ? lifecycle.last.status : "N/A"}', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13.sp)),
+                      Text('Lifecycle Events', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 4),
+                      Text('Current status: ${lifecycle.isNotEmpty ? lifecycle.last.status : "N/A"}', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13)),
                     ],
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20.r)),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
                   child: Text(_calculateProgress(lifecycle), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
           ),
           
-          SizedBox(height: 16.h),
+          SizedBox(height: 16),
           
           // Timeline
           Expanded(
             child: ListView.builder(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              padding: EdgeInsets.symmetric(horizontal: 16),
               itemCount: lifecycle.length,
               itemBuilder: (context, index) {
                 final event = lifecycle[index];
@@ -131,14 +130,14 @@ class _LifecycleTrackingScreenState extends State<LifecycleTrackingScreen> {
         children: [
           // Timeline Line and Dot
           SizedBox(
-            width: 60.w,
+            width: 60,
             child: Column(
               children: [
-                if (!isFirst) Container(width: 2, height: 20.h, color: Colors.grey.shade300),
+                if (!isFirst) Container(width: 2, height: 20, color: Colors.grey.shade300),
                 Container(
-                  width: 40.w, height: 40.h,
+                  width: 40, height: 40,
                   decoration: BoxDecoration(color: event.color.withOpacity(0.1), shape: BoxShape.circle, border: Border.all(color: event.color, width: 2)),
-                  child: Icon(event.icon, color: event.color, size: 20.sp),
+                  child: Icon(event.icon, color: event.color, size: 20),
                 ),
                 if (!isLast) Expanded(child: Container(width: 2, color: Colors.grey.shade300)),
               ],
@@ -148,11 +147,11 @@ class _LifecycleTrackingScreenState extends State<LifecycleTrackingScreen> {
           // Content
           Expanded(
             child: Container(
-              margin: EdgeInsets.only(bottom: 16.h),
-              padding: EdgeInsets.all(16.w),
+              margin: EdgeInsets.only(bottom: 16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12.r),
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 4)],
                 border: isLast ? Border.all(color: event.color, width: 2) : null,
               ),
@@ -163,25 +162,25 @@ class _LifecycleTrackingScreenState extends State<LifecycleTrackingScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                        decoration: BoxDecoration(color: event.color.withOpacity(0.1), borderRadius: BorderRadius.circular(4.r)),
-                        child: Text(event.status, style: TextStyle(color: event.color, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(color: event.color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                        child: Text(event.status, style: TextStyle(color: event.color, fontSize: 12, fontWeight: FontWeight.bold)),
                       ),
                       if (isLast) Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                        decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4.r)),
-                        child: Text('Current', style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
+                        child: Text('Current', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
-                  SizedBox(height: 8.h),
-                  Text(event.description, style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade700)),
-                  SizedBox(height: 8.h),
+                  SizedBox(height: 8),
+                  Text(event.description, style: TextStyle(fontSize: 14, color: Colors.grey.shade700)),
+                  SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.access_time, size: 14.sp, color: Colors.grey.shade500),
-                      SizedBox(width: 4.w),
-                      Text(_formatTimestamp(event.timestamp), style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade500)),
+                      Icon(Icons.access_time, size: 14, color: Colors.grey.shade500),
+                      SizedBox(width: 4),
+                      Text(_formatTimestamp(event.timestamp), style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
                     ],
                   ),
                 ],
