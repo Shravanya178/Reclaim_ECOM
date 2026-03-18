@@ -1,393 +1,323 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class LabDashboardScreen extends StatefulWidget {
+import 'package:reclaim/core/theme/app_theme.dart';
+import 'package:reclaim/core/widgets/responsive_builder.dart';
+import 'package:reclaim/core/widgets/responsive_scaffold.dart';
+import 'package:reclaim/core/widgets/web_navbar.dart';
+
+class LabDashboardScreen extends ConsumerWidget {
   const LabDashboardScreen({super.key});
 
+  static const _stats = [
+    ('34', 'Total Materials',  Icons.inventory_2_outlined, AppTheme.primaryGreen),
+    ('12', 'Donated This Month', Icons.volunteer_activism, Color(0xFF38A169)),
+    ('8',  'Pending Requests', Icons.pending_actions,     Color(0xFF3182CE)),
+    ('6.2 kg', 'CO₂ Saved',   Icons.eco,                 Color(0xFFD69E2E)),
+  ];
+
+  static const _inventory = [
+    ('Arduino Uno Rev3', 'Electronic', 5,  'Available'),
+    ('Copper Wire 1kg',  'Metal',      3,  'Low Stock'),
+    ('LED Strip 5m',     'Electronic', 12, 'Available'),
+    ('Glass Flask 500ml','Chemical',   20, 'Available'),
+    ('Steel Rod 1m',     'Metal',      2,  'Critical'),
+  ];
+
   @override
-  State<LabDashboardScreen> createState() => _LabDashboardScreenState();
-}
-
-class _LabDashboardScreenState extends State<LabDashboardScreen> {
-  bool get _isDesktop => MediaQuery.of(context).size.width > 768;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      drawer: _isDesktop ? null : _buildDrawer(context),
-      body: Row(
-        children: [
-          if (_isDesktop) _buildSideNav(context),
-          Expanded(
-            child: Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Row(
-                      children: [
-                        if (!_isDesktop)
-                          Builder(
-                            builder: (ctx) => IconButton(
-                              icon: const Icon(Icons.menu, color: Colors.white),
-                              onPressed: () => Scaffold.of(ctx).openDrawer(),
-                            ),
-                          ),
-                        Text('ReClaim Lab', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                        const Spacer(),
-                        IconButton(icon: const Icon(Icons.notifications_outlined, color: Colors.white), onPressed: () => context.push('/notifications')),
-                        IconButton(icon: const Icon(Icons.settings_outlined, color: Colors.white), onPressed: () => context.push('/settings')),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(_isDesktop ? 24 : 16),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: 900),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Welcome Card
-                            Container(
-                              width: double.infinity,
-                              padding: EdgeInsets.all(_isDesktop ? 24 : 20),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withOpacity(0.8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [BoxShadow(color: Theme.of(context).colorScheme.primary.withOpacity(0.3), blurRadius: 12, offset: Offset(0, 4))],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: EdgeInsets.all(10),
-                                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
-                                        child: Icon(Icons.science, color: Colors.white, size: 28),
-                                      ),
-                                      SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text('Lab A - Chemistry', style: TextStyle(color: Colors.white, fontSize: _isDesktop ? 22 : 20, fontWeight: FontWeight.bold)),
-                                            Text('VESIT Mumbai', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14)),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 16),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                    children: [
-                                      _buildQuickStat('Materials', '23', Icons.inventory_2_outlined),
-                                      _buildQuickStat('Matches', '8', Icons.handshake_outlined),
-                                      _buildQuickStat('CO₂ Saved', '12.5kg', Icons.eco_outlined),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            
-                            SizedBox(height: 24),
-                            
-                            // Desktop: Side by side; Mobile: Stacked
-                            if (_isDesktop)
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(child: _buildActionsSection(context)),
-                                  SizedBox(width: 24),
-                                  Expanded(child: _buildOpportunitiesSection(context)),
-                                ],
-                              )
-                            else ...[
-                              _buildActionsSection(context),
-                              SizedBox(height: 24),
-                              _buildOpportunitiesSection(context),
-                            ],
-                            
-                            SizedBox(height: 24),
-                            
-                            // Lab Management
-                            Text('Lab Management', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-                            SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(child: _buildFeatureCard(context, 'Lifecycle', 'Track usage', Icons.timeline, () => context.push('/lifecycle'))),
-                                SizedBox(width: 8),
-                                Expanded(child: _buildFeatureCard(context, 'Reports', 'Lab analytics', Icons.assessment, () => context.push('/impact'))),
-                                SizedBox(width: 8),
-                                Expanded(child: _buildFeatureCard(context, 'Approve', 'Pending', Icons.check_circle_outline, () => context.push('/requests'))),
-                              ],
-                            ),
-                            
-                            SizedBox(height: 32),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isMobile = Breakpoints.isMobile(context);
+    return ResponsiveScaffold(
+      currentRoute: '/lab-dashboard',
+      mobileAppBar: isMobile ? AppBar(
+        backgroundColor: AppTheme.primaryGreen,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text('Lab Dashboard', style: TextStyle(fontWeight: FontWeight.w700)),
+        actions: [
+          IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
         ],
+      ) : null,
+      body: isMobile ? _mobile(context) : _desktop(context),
+    );
+  }
+
+  Widget _desktop(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    return SingleChildScrollView(child: Column(children: [
+      // Hero
+      Container(width: double.infinity,
+        decoration: const BoxDecoration(gradient: LinearGradient(
+          colors: [AppTheme.primaryDark, AppTheme.primaryGreen, AppTheme.accent],
+          begin: Alignment.topLeft, end: Alignment.bottomRight)),
+        child: Center(child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1280),
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 52), child: Row(children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(16)),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.science_outlined, size: 14, color: Colors.white70),
+                  SizedBox(width: 6),
+                  Text('Laboratory', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                ])),
+              const SizedBox(height: 16),
+              const Text('Lab A – Chemistry', style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w800, height: 1.2)),
+              const SizedBox(height: 6),
+              const Text('VESIT Mumbai • Building 3, Floor 2', style: TextStyle(color: Colors.white60, fontSize: 14)),
+              const SizedBox(height: 28),
+              Row(children: [
+                _heroCta(context, 'AI Capture', Icons.camera_alt_outlined, () => context.go('/capture'), false),
+                const SizedBox(width: 14),
+                _heroCta(context, 'Inventory', Icons.inventory_2_outlined, () => context.go('/inventory'), true),
+                const SizedBox(width: 14),
+                _heroCta(context, 'Opportunities', Icons.explore_outlined, () => context.go('/opportunities'), true),
+              ]),
+            ])),
+            const SizedBox(width: 48),
+            // Lab badge
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white24)),
+              child: Column(children: [
+                Container(width: 72, height: 72,
+                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(16)),
+                  child: const Icon(Icons.science, size: 40, color: Colors.white)),
+                const SizedBox(height: 14),
+                const Text('Dr. Meera Patel', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                const Text('Lab In-charge', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                const SizedBox(height: 12),
+                Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+                  child: const Text('Active Lab', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12))),
+              ]),
+            ),
+          ]))))),
+      // Content
+      Center(child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: AppTheme.contentMaxWidth(w)),
+        child: Padding(padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40), child: Column(children: [
+          _statsRow(),
+          const SizedBox(height: 36),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _sectionTitle('Quick Actions'),
+              const SizedBox(height: 16),
+              _actionsGrid(context),
+              const SizedBox(height: 32),
+              _sectionTitle('Inventory Overview'),
+              const SizedBox(height: 16),
+              _inventoryTable(),
+            ])),
+            const SizedBox(width: 28),
+            SizedBox(width: 296, child: Column(children: [
+              _requestsPanel(),
+              const SizedBox(height: 20),
+              _ecoPanel(),
+            ])),
+          ]),
+        ])),
+      )),
+      const WebFooter(),
+    ]));
+  }
+
+  Widget _heroCta(BuildContext context, String label, IconData ic, VoidCallback onTap, bool outline) =>
+    ElevatedButton.icon(
+      onPressed: onTap,
+      icon: Icon(ic, size: 16),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: outline ? Colors.transparent : Colors.white,
+        foregroundColor: outline ? Colors.white : AppTheme.primaryGreen,
+        elevation: 0,
+        side: outline ? const BorderSide(color: Colors.white54) : null,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+    );
+
+  Widget _sectionTitle(String t) => Text(t, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800));
+
+  Widget _statsRow() => Row(children: _stats.map((s) => Expanded(child: Container(
+    margin: const EdgeInsets.only(right: 16),
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFE5EFE8)),
+      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,3))]),
+    child: Row(children: [
+      Container(width: 44, height: 44,
+        decoration: BoxDecoration(color: s.$4.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+        child: Icon(s.$3, color: s.$4, size: 22)),
+      const SizedBox(width: 14),
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(s.$1, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: s.$4)),
+        Text(s.$2, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+      ]),
+    ]),
+  ))).toList());
+
+  Widget _actionsGrid(BuildContext context) {
+    const acts = [
+      ('AI Photo Capture', 'Scan & classify surplus', Icons.camera_alt_outlined,  AppTheme.primaryGreen, '/capture'),
+      ('Browse Requests',  'See what students need',  Icons.search,                Color(0xFF3182CE), '/requests'),
+      ('SCM Analytics',    'Supply chain insights',    Icons.hub_outlined,          Color(0xFFD69E2E), '/scm-dashboard'),
+      ('View Opportunities','Discover matches',         Icons.explore_outlined,     Color(0xFF805AD5), '/opportunities'),
+    ];
+    return Row(children: acts.map((a) => Expanded(child: GestureDetector(
+      onTap: () => context.go(a.$5),
+      child: Container(
+        margin: const EdgeInsets.only(right: 16),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE5EFE8)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,3))]),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 42, height: 42,
+            decoration: BoxDecoration(color: a.$4.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            child: Icon(a.$3, color: a.$4, size: 22)),
+          const SizedBox(height: 14),
+          Text(a.$1, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          const SizedBox(height: 3),
+          Text(a.$2, style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, height: 1.4)),
+        ]),
       ),
-    );
+    ))).toList());
   }
 
-  Widget _buildActionsSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Quick Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-        SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildActionCard(context, 'Capture', 'AI detection', Icons.camera_alt, Colors.blue, () => context.push('/lab-dashboard/capture'))),
-            SizedBox(width: 12),
-            Expanded(child: _buildActionCard(context, 'Inventory', 'Materials', Icons.inventory_2, Colors.green, () => context.push('/lab-dashboard/inventory'))),
-          ],
-        ),
-        SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildActionCard(context, 'Opportunities', 'AI matches', Icons.auto_awesome, Colors.purple, () => context.push('/lab-dashboard/opportunities'))),
-            SizedBox(width: 12),
-            Expanded(child: _buildActionCard(context, 'Requests', 'Students', Icons.inbox, Colors.orange, () => context.push('/requests'))),
-          ],
-        ),
-      ],
-    );
-  }
+  Widget _inventoryTable() => Container(
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFE5EFE8)),
+      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,3))]),
+    child: Column(children: [
+      // Header
+      Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: const BoxDecoration(color: Color(0xFFF7FAF8),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(14))),
+        child: const Row(children: [
+          Expanded(flex: 3, child: Text('MATERIAL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.textSecondary, letterSpacing: 0.8))),
+          Expanded(flex: 2, child: Text('CATEGORY', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.textSecondary, letterSpacing: 0.8))),
+          Expanded(flex: 1, child: Text('QTY',      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.textSecondary, letterSpacing: 0.8))),
+          Expanded(flex: 2, child: Text('STATUS',   style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.textSecondary, letterSpacing: 0.8))),
+        ])),
+      const Divider(height: 1, color: Color(0xFFEAF1EB)),
+      ..._inventory.map((item) {
+        Color sc; switch (item.$4) {
+          case 'Available': sc = AppTheme.primaryGreen; break;
+          case 'Low Stock': sc = const Color(0xFFD69E2E); break;
+          default:           sc = Colors.redAccent;
+        }
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF0F5F1)))),
+          child: Row(children: [
+            Expanded(flex: 3, child: Text(item.$1, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+            Expanded(flex: 2, child: Text(item.$2, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary))),
+            Expanded(flex: 1, child: Text('${item.$3}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+            Expanded(flex: 2, child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: sc.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              child: Text(item.$4, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: sc)))),
+          ]),
+        );
+      }),
+    ]),
+  );
 
-  Widget _buildOpportunitiesSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Pending Opportunities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-            TextButton(onPressed: () => context.push('/lab-dashboard/opportunities'), child: Text('View All', style: TextStyle(fontSize: 12))),
-          ],
-        ),
-        SizedBox(height: 8),
-        _buildOpportunityCard(context, 'Arduino Boards', 'Smart Traffic System', 'Rahul Sharma', 92, 1.8),
-        SizedBox(height: 8),
-        _buildOpportunityCard(context, 'Copper Wires', 'Home Automation Hub', 'Priya Patel', 87, 2.4),
-      ],
-    );
-  }
+  Widget _requestsPanel() => Container(
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFE5EFE8))),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Padding(padding: EdgeInsets.fromLTRB(18,18,18,12),
+        child: Text('Pending Requests', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700))),
+      const Divider(height: 1, color: Color(0xFFEAF1EB)),
+      for (final r in [('Copper Wire 2m', 'Shravanya R.'), ('LED Bulb x5', 'Arjun M.'), ('Glass Flask', 'Priya K.')])
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), child: Row(children: [
+          Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF3182CE))),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(r.$1, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            Text(r.$2, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+          ])),
+          TextButton(onPressed: () {}, style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(40, 28)),
+            child: const Text('Review', style: TextStyle(fontSize: 12))),
+        ])),
+    ]),
+  );
 
-  Widget _buildSideNav(BuildContext context) {
-    return Container(
-      width: 220,
-      decoration: BoxDecoration(color: Colors.white, border: Border(right: BorderSide(color: Colors.grey.shade200))),
-      child: Column(
+  Widget _ecoPanel() => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(colors: [AppTheme.primaryGreen, AppTheme.primaryDark],
+        begin: Alignment.topLeft, end: Alignment.bottomRight),
+      borderRadius: BorderRadius.circular(14)),
+    child: Column(children: [
+      const Icon(Icons.eco, color: Colors.white, size: 26),
+      const SizedBox(height: 10),
+      const Text('Lab Eco Score', style: TextStyle(color: Colors.white70, fontSize: 13)),
+      const Text('920 pts', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+      const SizedBox(height: 10),
+      LinearProgressIndicator(value: 0.92, backgroundColor: Colors.white30, valueColor: const AlwaysStoppedAnimation(Colors.white), borderRadius: BorderRadius.circular(4)),
+      const SizedBox(height: 8),
+      const Text('Top 5% of all labs!', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
+    ]),
+  );
+
+  // ─── MOBILE ───────────────────────────────────────────
+  Widget _mobile(BuildContext context) => SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Container(padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(gradient: LinearGradient(
+        colors: [AppTheme.primaryDark, AppTheme.primaryGreen],
+        begin: Alignment.topLeft, end: Alignment.bottomRight)),
+      child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Lab A – Chemistry', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+          const Text('VESIT Mumbai', style: TextStyle(color: Colors.white60, fontSize: 12)),
+        ])),
+        const Icon(Icons.science, color: Colors.white60, size: 36),
+      ])),
+    Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.6,
+        children: _stats.map((s) => Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5EFE8))),
+          child: Row(children: [
+            Icon(s.$3, color: s.$4, size: 22),
+            const SizedBox(width: 10),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text(s.$1, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: s.$4)),
+              Text(s.$2, style: const TextStyle(fontSize: 9, color: AppTheme.textSecondary, height: 1.3)),
+            ])),
+          ]),
+        )).toList()),
+      const SizedBox(height: 24),
+      const Text('Quick Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+      const SizedBox(height: 14),
+      GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.4,
         children: [
-          Container(
-            padding: EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(Icons.science, color: Theme.of(context).colorScheme.primary, size: 28),
-                SizedBox(width: 8),
-                Text('Lab Portal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
-              ],
-            ),
-          ),
-          Divider(height: 1),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              children: [
-                _buildNavItem(context, Icons.dashboard_outlined, 'Dashboard', true, () {}),
-                _buildNavItem(context, Icons.camera_alt_outlined, 'Capture', false, () => context.push('/lab-dashboard/capture')),
-                _buildNavItem(context, Icons.inventory_2_outlined, 'Inventory', false, () => context.push('/lab-dashboard/inventory')),
-                _buildNavItem(context, Icons.auto_awesome_outlined, 'Opportunities', false, () => context.push('/lab-dashboard/opportunities')),
-                _buildNavItem(context, Icons.inbox_outlined, 'Requests', false, () => context.push('/requests')),
-                Divider(height: 24, indent: 16, endIndent: 16),
-                _buildNavItem(context, Icons.timeline_outlined, 'Lifecycle', false, () => context.push('/lifecycle')),
-                _buildNavItem(context, Icons.assessment_outlined, 'Reports', false, () => context.push('/impact')),
-                _buildNavItem(context, Icons.settings_outlined, 'Settings', false, () => context.push('/settings')),
-              ],
-            ),
-          ),
-          Divider(height: 1),
-          Padding(
-            padding: EdgeInsets.all(12),
-            child: SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => context.go('/role-selection'),
-                style: OutlinedButton.styleFrom(padding: EdgeInsets.symmetric(vertical: 8)),
-                child: Text('Change Role', style: TextStyle(fontSize: 12)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+          _mobileAction(context, 'AI Capture', Icons.camera_alt_outlined, AppTheme.primaryGreen, '/capture'),
+          _mobileAction(context, 'Inventory', Icons.inventory_2_outlined, const Color(0xFF3182CE), '/inventory'),
+          _mobileAction(context, 'SCM Analytics', Icons.hub_outlined, const Color(0xFFD69E2E), '/scm-dashboard'),
+          _mobileAction(context, 'Opportunities', Icons.explore_outlined, const Color(0xFF805AD5), '/opportunities'),
+        ]),
+      const SizedBox(height: 24),
+      _requestsPanel(),
+    ])),
+  ]));
 
-  Widget _buildNavItem(BuildContext context, IconData icon, String label, bool isActive, VoidCallback onTap) {
-    return Material(
-      color: isActive ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Icon(icon, size: 20, color: isActive ? Theme.of(context).colorScheme.primary : Colors.grey.shade700),
-              SizedBox(width: 12),
-              Text(label, style: TextStyle(fontSize: 13, color: isActive ? Theme.of(context).colorScheme.primary : Colors.grey.shade700, fontWeight: isActive ? FontWeight.w600 : FontWeight.normal)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Drawer _buildDrawer(BuildContext context) {
-    return Drawer(
-      backgroundColor: Colors.white,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          Container(
-            padding: EdgeInsets.fromLTRB(16, 48, 16, 16),
-            color: Colors.grey.shade100,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(radius: 28, backgroundColor: Colors.grey.shade300, child: Icon(Icons.science, color: Colors.grey.shade700, size: 28)),
-                SizedBox(height: 12),
-                Text('Lab A - Chemistry', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('VESIT Mumbai', style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
-              ],
-            ),
-          ),
-          ListTile(leading: Icon(Icons.dashboard_outlined), title: Text('Dashboard'), onTap: () => Navigator.pop(context)),
-          ListTile(leading: Icon(Icons.camera_alt_outlined), title: Text('Capture Materials'), onTap: () { Navigator.pop(context); context.push('/lab-dashboard/capture'); }),
-          ListTile(leading: Icon(Icons.inventory_2_outlined), title: Text('Inventory'), onTap: () { Navigator.pop(context); context.push('/lab-dashboard/inventory'); }),
-          ListTile(leading: Icon(Icons.auto_awesome_outlined), title: Text('Opportunities'), onTap: () { Navigator.pop(context); context.push('/lab-dashboard/opportunities'); }),
-          const Divider(),
-          ListTile(leading: Icon(Icons.settings_outlined), title: Text('Settings'), onTap: () { Navigator.pop(context); context.push('/settings'); }),
-          ListTile(leading: Icon(Icons.logout_outlined), title: Text('Change Role'), onTap: () { Navigator.pop(context); context.go('/role-selection'); }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickStat(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white.withOpacity(0.9), size: 22),
-        SizedBox(height: 6),
-        Text(value, style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11)),
-      ],
-    );
-  }
-
-  Widget _buildActionCard(BuildContext context, String title, String subtitle, IconData icon, Color color, VoidCallback onTap) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade100)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon, color: color, size: 22),
-              ),
-              SizedBox(height: 12),
-              Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-              SizedBox(height: 2),
-              Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOpportunityCard(BuildContext context, String material, String project, String student, int matchPercent, double carbonSaved) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade100)),
-      child: Row(
-        children: [
-          Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(color: Colors.purple.shade50, borderRadius: BorderRadius.circular(10)),
-            child: Icon(Icons.auto_awesome, color: Colors.purple, size: 20),
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(material, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey.shade800), overflow: TextOverflow.ellipsis),
-                Text('$project', style: TextStyle(fontSize: 10, color: Colors.grey.shade600), overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-          SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(10)),
-                child: Text('$matchPercent%', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10, fontWeight: FontWeight.bold)),
-              ),
-              SizedBox(height: 2),
-              Text('$carbonSaved kg', style: TextStyle(fontSize: 9, color: Colors.green.shade700)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureCard(BuildContext context, String title, String subtitle, IconData icon, VoidCallback onTap) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade100)),
-          child: Column(
-            children: [
-              Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24),
-              SizedBox(height: 6),
-              Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-              Text(subtitle, style: TextStyle(fontSize: 9, color: Colors.grey.shade600)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _mobileAction(BuildContext context, String label, IconData ic, Color col, String route) => GestureDetector(
+    onTap: () => context.go(route),
+    child: Container(
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5EFE8))),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(width: 42, height: 42, decoration: BoxDecoration(color: col.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+          child: Icon(ic, color: col, size: 22)),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+      ]),
+    ),
+  );
 }

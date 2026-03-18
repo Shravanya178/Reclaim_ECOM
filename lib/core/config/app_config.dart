@@ -8,13 +8,29 @@ class AppConfig {
     'SUPABASE_ANON_KEY',
     defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZGZndnVqZ3FjbGlxeWF1amhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0MjE3MDAsImV4cCI6MjA4Mjk5NzcwMH0.3A7uAuQZxSBRXwI__GPheQrsNVTkFpDmS4Bj3whkyyY',
   );
-  
+
+  // ── Razorpay ──────────────────────────────────────────────────────────────
+  /// Public key used in the browser checkout.  Safe to expose client-side.
+  static const String razorpayKeyId = String.fromEnvironment(
+    'RAZORPAY_KEY_ID',
+    defaultValue: 'rzp_test_SN9ToEu8MxPPXc',
+  );
+
+  /// Secret key. Used ONLY for server-side signature verification.
+  /// Never send this to the browser / include it in JS bundles.
+  static const String razorpayKeySecret = String.fromEnvironment(
+    'RAZORPAY_KEY_SECRET',
+    defaultValue: 'RddSc9p6EP27YJ13LssK1Wf1',
+  );
+
+  static bool get isTestMode => razorpayKeyId.startsWith('rzp_test_');
+
   // Environment
   static const String environment = String.fromEnvironment(
     'ENVIRONMENT',
     defaultValue: 'development',
   );
-  
+
   static bool get isDevelopment => environment == 'development';
   static bool get isProduction => environment == 'production';
   

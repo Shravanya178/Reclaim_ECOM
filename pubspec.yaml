@@ -116,6 +116,7 @@ flutter:
   assets:
    
     - assets/models/
+    - images/
 
 flutter_launcher_icons:
   android: "launcher_icon"

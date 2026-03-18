@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/models/user.dart';
@@ -97,7 +96,7 @@ class _CampusSelectionScreenState extends State<CampusSelectionScreen> {
     final maxWidth = isDesktop ? 600.0 : double.infinity;
     
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Select Campus'),
         backgroundColor: Colors.transparent,
@@ -259,16 +258,16 @@ class _CampusSelectionScreenState extends State<CampusSelectionScreen> {
                       padding: EdgeInsets.all(isDesktop ? 20 : 16),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12.r),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.check_circle,
                         color: Theme.of(context).colorScheme.primary,
-                        size: 20.sp,
+                        size: 20,
                       ),
-                      SizedBox(width: 8.w),
+                      const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _allCampuses.firstWhere((c) => c.id == _selectedCampusId).name,

@@ -29,19 +29,20 @@ class ReclaimApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
-    
+
     return ScreenUtilInit(
-      designSize: const Size(375, 812),
-      minTextAdapt: true,
-      splitScreenMode: true,
+      designSize: const Size(1440, 900), // web-first design size
+      minTextAdapt: false,
+      splitScreenMode: false,
       useInheritedMediaQuery: true,
+      ensureScreenSize: true,
       builder: (context, child) {
         return MaterialApp.router(
-          title: 'ReClaim - Sustainable Materials Marketplace',
+          title: 'ReClaim – Sustainable Materials Marketplace',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeMode.system,
+          themeMode: ThemeMode.light, // default light; user can toggle
           routerConfig: router,
         );
       },

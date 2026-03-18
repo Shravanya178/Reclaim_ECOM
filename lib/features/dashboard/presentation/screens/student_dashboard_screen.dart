@@ -1,552 +1,342 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class StudentDashboardScreen extends StatefulWidget {
+import 'package:reclaim/core/theme/app_theme.dart';
+import 'package:reclaim/core/widgets/responsive_builder.dart';
+import 'package:reclaim/core/widgets/responsive_scaffold.dart';
+import 'package:reclaim/core/widgets/web_navbar.dart';
+
+class StudentDashboardScreen extends ConsumerWidget {
   const StudentDashboardScreen({super.key});
 
+  static const _stats = [
+    ('12', 'Materials Donated',    Icons.recycling,             AppTheme.primaryGreen),
+    ('8',  'Active Requests',      Icons.pending_actions,       Color(0xFF3182CE)),
+    ('3',  'Orders Placed',        Icons.shopping_bag_outlined, Color(0xFFD69E2E)),
+    ('24.5 kg', 'CO₂ Saved',      Icons.eco,                   Color(0xFF38A169)),
+  ];
+
+  static const _recentActivity = [
+    ('Donated: Arduino Uno Rev3',      '2 min ago',  Icons.volunteer_activism, AppTheme.primaryGreen),
+    ('Request approved: Copper Wire',  '1 hour ago', Icons.check_circle,       Color(0xFF38A169)),
+    ('Order placed: LED Strip 5m',     '3 hours ago', Icons.shopping_bag_outlined, Color(0xFF3182CE)),
+    ('Inventory updated: 5 items',     'Yesterday',  Icons.inventory_2_outlined, Color(0xFFD69E2E)),
+  ];
+
   @override
-  State<StudentDashboardScreen> createState() => _StudentDashboardScreenState();
-}
-
-class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
-  bool get _isDesktop => MediaQuery.of(context).size.width > 768;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      drawer: _isDesktop ? null : _buildDrawer(context),
-      body: Row(
-        children: [
-          // Desktop side navigation
-          if (_isDesktop) _buildSideNav(context),
-          
-          // Main content
-          Expanded(
-            child: Column(
-              children: [
-                // App bar
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Row(
-                      children: [
-                        if (!_isDesktop)
-                          Builder(
-                            builder: (ctx) => IconButton(
-                              icon: const Icon(Icons.menu, color: Colors.white),
-                              onPressed: () => Scaffold.of(ctx).openDrawer(),
-                            ),
-                          ),
-                        Text('ReClaim', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                        const Spacer(),
-                        IconButton(
-                          icon: Badge(smallSize: 8, child: const Icon(Icons.notifications_outlined, color: Colors.white)),
-                          onPressed: () => context.push('/notifications'),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.settings_outlined, color: Colors.white),
-                          onPressed: () => context.push('/settings'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // Scrollable content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(_isDesktop ? 24 : 16),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: 900),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Welcome Card
-                            Container(
-                              width: double.infinity,
-                              padding: EdgeInsets.all(_isDesktop ? 24 : 20),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Theme.of(context).colorScheme.primary,
-                                    Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                                    blurRadius: 12,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: _isDesktop ? 28 : 24,
-                                    backgroundColor: Colors.white.withOpacity(0.2),
-                                    child: Text('SA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                                  ),
-                                  SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Welcome back, Shravanya!', style: TextStyle(color: Colors.white, fontSize: _isDesktop ? 20 : 18, fontWeight: FontWeight.bold)),
-                                        SizedBox(height: 4),
-                                        Text('VESIT Mumbai • Information Technology', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13)),
-                                        SizedBox(height: 8),
-                                        Text('Discover materials and build sustainably', style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            
-                            SizedBox(height: 24),
-                            
-                            // Stats & Actions - side by side on desktop
-                            if (_isDesktop)
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(child: _buildStatsSection(context)),
-                                  SizedBox(width: 24),
-                                  Expanded(child: _buildActionsSection(context)),
-                                ],
-                              )
-                            else ...[
-                              _buildStatsSection(context),
-                              SizedBox(height: 24),
-                              _buildActionsSection(context),
-                            ],
-                            
-                            SizedBox(height: 24),
-                            
-                            // Materials & Activity - side by side on desktop
-                            if (_isDesktop)
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(flex: 3, child: _buildMaterialsSection(context)),
-                                  SizedBox(width: 24),
-                                  Expanded(flex: 2, child: _buildActivitySection(context)),
-                                ],
-                              )
-                            else ...[
-                              _buildMaterialsSection(context),
-                              SizedBox(height: 24),
-                              _buildActivitySection(context),
-                            ],
-                            
-                            SizedBox(height: 16),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isMobile = Breakpoints.isMobile(context);
+    return ResponsiveScaffold(
+      currentRoute: '/student-dashboard',
+      mobileAppBar: isMobile ? AppBar(
+        backgroundColor: AppTheme.primaryGreen,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text('Dashboard', style: TextStyle(fontWeight: FontWeight.w700)),
+        actions: [
+          IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
+          const CircleAvatar(radius: 16, backgroundColor: Colors.white24,
+            child: Icon(Icons.person, size: 16, color: Colors.white)),
+          const SizedBox(width: 12),
         ],
-      ),
+      ) : null,
+      body: isMobile ? _mobile(context) : _desktop(context),
     );
   }
 
-  Widget _buildStatsSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Quick Stats', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-        SizedBox(height: 12),
-        Row(
+  // ─── DESKTOP ─────────────────────────────────────────
+  Widget _desktop(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    return SingleChildScrollView(child: Column(children: [
+      _heroSection(context),
+      Center(child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: AppTheme.contentMaxWidth(w)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Stats row
+            _statsRow(),
+            const SizedBox(height: 40),
+            // Main content
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // Left (main content)
+              Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Quick Actions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 18),
+                _quickActions(context),
+                const SizedBox(height: 32),
+                const Text('My Recent Materials', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 18),
+                _materialsGrid(context),
+              ])),
+              const SizedBox(width: 28),
+              // Right sidebar
+              SizedBox(width: 300, child: Column(children: [
+                _activityFeed(),
+                const SizedBox(height: 20),
+                _ecoScore(),
+              ])),
+            ]),
+          ]),
+        ),
+      )),
+      const WebFooter(),
+    ]));
+  }
+
+  Widget _heroSection(BuildContext context) => Container(
+    width: double.infinity,
+    decoration: const BoxDecoration(gradient: LinearGradient(
+      colors: [AppTheme.primaryDark, AppTheme.primaryGreen, AppTheme.accent],
+      begin: Alignment.topLeft, end: Alignment.bottomRight)),
+    child: Center(child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 1280),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 50),
+        child: Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(16)),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.wb_sunny_outlined, size: 14, color: Colors.white70),
+                SizedBox(width: 6),
+                Text('Good morning!', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              ])),
+            const SizedBox(height: 16),
+            const Text('Welcome back,\nShravanya 👋', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800, height: 1.2)),
+            const SizedBox(height: 10),
+            const Text('VESIT Mumbai · Environmental Eng.', style: TextStyle(color: Colors.white60, fontSize: 14)),
+            const SizedBox(height: 28),
+            Row(children: [
+              _heroCta(context, 'Browse Shop', Icons.store_outlined, () => context.go('/shop')),
+              const SizedBox(width: 14),
+              _heroCta(context, 'My Inventory', Icons.inventory_2_outlined, () => context.go('/inventory'), outline: true),
+            ]),
+          ])),
+          const SizedBox(width: 48),
+          // Profile card
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white24)),
+            child: Column(children: [
+              Container(width: 72, height: 72,
+                decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white24),
+                child: const Icon(Icons.person, size: 40, color: Colors.white)),
+              const SizedBox(height: 14),
+              const Text('Shravanya', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+              const Text('Student', style: TextStyle(color: Colors.white60, fontSize: 13)),
+              const SizedBox(height: 16),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+                child: const Text('Eco Score: 840 pts', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13))),
+            ]),
+          ),
+        ]),
+      ),
+    )),
+  );
+
+  Widget _heroCta(BuildContext context, String label, IconData ic, VoidCallback onTap, {bool outline = false}) => ElevatedButton.icon(
+    onPressed: onTap,
+    icon: Icon(ic, size: 16),
+    label: Text(label),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: outline ? Colors.transparent : Colors.white,
+      foregroundColor: outline ? Colors.white : AppTheme.primaryGreen,
+      elevation: 0,
+      side: outline ? const BorderSide(color: Colors.white54) : null,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+  );
+
+  Widget _statsRow() {
+    return Row(children: _stats.map((s) => Expanded(child: Container(
+      margin: const EdgeInsets.only(right: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5EFE8)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,3))]),
+      child: Row(children: [
+        Container(width: 44, height: 44,
+          decoration: BoxDecoration(color: s.$4.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+          child: Icon(s.$3, color: s.$4, size: 22)),
+        const SizedBox(width: 14),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(s.$1, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: s.$4)),
+          Text(s.$2, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+        ]),
+      ]),
+    ))).toList());
+  }
+
+  Widget _quickActions(BuildContext context) {
+    final actions = [
+      ('Donate Material', 'Upload surplus materials to the network', Icons.volunteer_activism, AppTheme.primaryGreen, '/capture'),
+      ('Browse Shop', 'Find parts and materials you need', Icons.store_outlined, Color(0xFF3182CE), '/shop'),
+      ('Make Request', 'Request specific materials from labs', Icons.pending_actions, Color(0xFFD69E2E), '/requests'),
+      ('My Orders', 'Track and manage your purchases', Icons.receipt_long_outlined, Color(0xFF805AD5), '/orders'),
+    ];
+    return Row(children: actions.map((a) => Expanded(child: GestureDetector(
+      onTap: () => context.go(a.$5),
+      child: Container(
+        margin: const EdgeInsets.only(right: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE5EFE8)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,3))]),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 44, height: 44,
+            decoration: BoxDecoration(color: a.$4.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            child: Icon(a.$3, color: a.$4, size: 22)),
+          const SizedBox(height: 14),
+          Text(a.$1, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+          const SizedBox(height: 4),
+          Text(a.$2, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4)),
+        ]),
+      ),
+    ))).toList());
+  }
+
+  Widget _materialsGrid(BuildContext context) {
+    const items = [
+      ('Arduino Uno', 'Electronic', 'Available', AppTheme.primaryGreen),
+      ('Copper Wire', 'Metal', 'Donated', Color(0xFF3182CE)),
+      ('LED Strip', 'Electronic', 'In Cart', Color(0xFFD69E2E)),
+      ('Flask 500ml', 'Chemical', 'Available', AppTheme.primaryGreen),
+    ];
+    return GridView.count(
+      crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 2.8,
+      children: items.map((it) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5EFE8))),
+        child: Row(children: [
+          Container(width: 40, height: 40, decoration: BoxDecoration(color: it.$4.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            child: Icon(Icons.inventory_2_outlined, color: it.$4, size: 20)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+            Text(it.$1, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+            Text(it.$2, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+          ])),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: it.$4.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            child: Text(it.$3, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: it.$4))),
+        ]),
+      )).toList(),
+    );
+  }
+
+  Widget _activityFeed() => Container(
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFE5EFE8)),
+      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,3))]),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Padding(padding: EdgeInsets.fromLTRB(18,18,18,12),
+        child: Text('Recent Activity', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700))),
+      const Divider(height: 1, color: Color(0xFFEAF1EB)),
+      ..._recentActivity.map((a) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(children: [
+          Container(width: 36, height: 36,
+            decoration: BoxDecoration(color: a.$4.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            child: Icon(a.$3, color: a.$4, size: 18)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(a.$1, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(a.$2, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+          ])),
+        ]),
+      )),
+    ]),
+  );
+
+  Widget _ecoScore() => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(colors: [AppTheme.primaryGreen, AppTheme.primaryDark],
+        begin: Alignment.topLeft, end: Alignment.bottomRight),
+      borderRadius: BorderRadius.circular(14)),
+    child: Column(children: [
+      const Icon(Icons.eco, color: Colors.white, size: 28),
+      const SizedBox(height: 10),
+      const Text('Eco Score', style: TextStyle(color: Colors.white70, fontSize: 13)),
+      const Text('840 pts', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
+      const SizedBox(height: 10),
+      LinearProgressIndicator(value: 0.84, backgroundColor: Colors.white30, valueColor: const AlwaysStoppedAnimation(Colors.white), borderRadius: BorderRadius.circular(4)),
+      const SizedBox(height: 6),
+      const Text('160 pts to Gold tier', style: TextStyle(color: Colors.white60, fontSize: 11)),
+    ]),
+  );
+
+  // ─── MOBILE ───────────────────────────────────────────
+  Widget _mobile(BuildContext context) {
+    return SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // Mobile hero
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(gradient: LinearGradient(
+          colors: [AppTheme.primaryDark, AppTheme.primaryGreen],
+          begin: Alignment.topLeft, end: Alignment.bottomRight)),
+        child: Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Welcome back,', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            const Text('Shravanya', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+            const Text('VESIT Mumbai', style: TextStyle(color: Colors.white60, fontSize: 12)),
+          ])),
+          const CircleAvatar(radius: 28, backgroundColor: Colors.white24,
+            child: Icon(Icons.person, size: 32, color: Colors.white)),
+        ]),
+      ),
+      Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Stats 2x2
+        GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.6,
+          children: _stats.map((s) => Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5EFE8))),
+            child: Row(children: [
+              Icon(s.$3, color: s.$4, size: 22),
+              const SizedBox(width: 10),
+              Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text(s.$1, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: s.$4)),
+                Text(s.$2, style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary, height: 1.3)),
+              ]),
+            ]),
+          )).toList()),
+        const SizedBox(height: 24),
+        const Text('Quick Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 14),
+        // 2x2 action grid
+        GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.4,
           children: [
-            Expanded(child: _buildStatCard(context, 'Materials', '12', Icons.inventory_2_outlined, Colors.blue)),
-            SizedBox(width: 10),
-            Expanded(child: _buildStatCard(context, 'CO₂ Saved', '4.2kg', Icons.eco_outlined, Colors.green)),
-            SizedBox(width: 10),
-            Expanded(child: _buildStatCard(context, 'Projects', '3', Icons.rocket_launch_outlined, Colors.orange)),
-          ],
-        ),
-      ],
-    );
+            _mobileAction(context, 'Shop', Icons.store_outlined, const Color(0xFF3182CE), '/shop'),
+            _mobileAction(context, 'Donate', Icons.volunteer_activism, AppTheme.primaryGreen, '/capture'),
+            _mobileAction(context, 'Requests', Icons.pending_actions, const Color(0xFFD69E2E), '/requests'),
+            _mobileAction(context, 'Orders', Icons.receipt_long_outlined, const Color(0xFF805AD5), '/orders'),
+          ]),
+        const SizedBox(height: 24),
+        const Text('Recent Activity', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 14),
+        _activityFeed(),
+      ])),
+    ]));
   }
 
-  Widget _buildActionsSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Quick Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-        SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildActionCard(context, 'Discover', 'Find materials', Icons.map_outlined, Colors.blue, () => context.push('/student-dashboard/discovery'))),
-            SizedBox(width: 10),
-            Expanded(child: _buildActionCard(context, 'Request', 'Post needs', Icons.add_circle_outline, Colors.green, () => context.push('/requests'))),
-            SizedBox(width: 10),
-            Expanded(child: _buildActionCard(context, 'Barter', 'Skill exchange', Icons.swap_horiz, Colors.purple, () => context.push('/barter'))),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMaterialsSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Materials Near You', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-            TextButton(onPressed: () => context.push('/student-dashboard/discovery'), child: const Text('See All')),
-          ],
-        ),
-        SizedBox(height: 8),
-        _buildMaterialCard(context, 'Arduino Boards', 'Lab A - Chemistry', '5 units', '0.2 km', 'Electronic'),
-        SizedBox(height: 8),
-        _buildMaterialCard(context, 'Copper Wire Spools', 'Lab B - Electronics', '3 kg', '0.4 km', 'Metal'),
-        SizedBox(height: 8),
-        _buildMaterialCard(context, 'Acrylic Sheets', 'Workshop', '10 sheets', '0.6 km', 'Plastic'),
-      ],
-    );
-  }
-
-  Widget _buildActivitySection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Recent Activity', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-            TextButton(onPressed: () => context.push('/notifications'), child: const Text('View All')),
-          ],
-        ),
-        SizedBox(height: 8),
-        _buildActivityItem('Material request matched', 'Arduino boards for Smart Traffic System', '2 hours ago', Icons.check_circle, Colors.green),
-        _buildActivityItem('New opportunity', 'Copper wires available near you', '5 hours ago', Icons.notifications, Colors.blue),
-        _buildActivityItem('Impact milestone', 'You\'ve saved 4kg of CO₂!', '1 day ago', Icons.emoji_events, Colors.amber),
-      ],
-    );
-  }
-
-  Widget _buildSideNav(BuildContext context) {
-    return Container(
-      width: 220,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(right: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(Icons.recycling, color: Theme.of(context).colorScheme.primary, size: 28),
-                SizedBox(width: 8),
-                Text('ReClaim', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
-              ],
-            ),
-          ),
-          Divider(height: 1),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              children: [
-                _buildNavItem(context, Icons.dashboard_outlined, 'Dashboard', true, () {}),
-                _buildNavItem(context, Icons.map_outlined, 'Discover', false, () => context.push('/student-dashboard/discovery')),
-                _buildNavItem(context, Icons.swap_horiz, 'Skill Barter', false, () => context.push('/barter')),
-                _buildNavItem(context, Icons.add_circle_outline, 'My Requests', false, () => context.push('/requests')),
-                Divider(height: 24, indent: 16, endIndent: 16),
-                _buildNavItem(context, Icons.assessment_outlined, 'Impact', false, () => context.push('/impact')),
-                _buildNavItem(context, Icons.timeline_outlined, 'Lifecycle', false, () => context.push('/lifecycle')),
-                _buildNavItem(context, Icons.settings_outlined, 'Settings', false, () => context.push('/settings')),
-              ],
-            ),
-          ),
-          Divider(height: 1),
-          Padding(
-            padding: EdgeInsets.all(12),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(radius: 16, backgroundColor: Colors.grey.shade200, child: Icon(Icons.person, size: 18, color: Colors.grey.shade600)),
-                    SizedBox(width: 8),
-                    Expanded(child: Text('Shravanya', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-                  ],
-                ),
-                SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.go('/role-selection'),
-                    style: OutlinedButton.styleFrom(padding: EdgeInsets.symmetric(vertical: 8)),
-                    child: Text('Change Role', style: TextStyle(fontSize: 12)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(BuildContext context, IconData icon, String label, bool isActive, VoidCallback onTap) {
-    return Material(
-      color: isActive ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Icon(icon, size: 20, color: isActive ? Theme.of(context).colorScheme.primary : Colors.grey.shade700),
-              SizedBox(width: 12),
-              Text(label, style: TextStyle(fontSize: 13, color: isActive ? Theme.of(context).colorScheme.primary : Colors.grey.shade700, fontWeight: isActive ? FontWeight.w600 : FontWeight.normal)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(BuildContext context, String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 4)]),
-      child: Column(
-        children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-          Text(title, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionCard(BuildContext context, String title, String subtitle, IconData icon, Color color, VoidCallback onTap) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade100)),
-          child: Column(
-            children: [
-              Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              SizedBox(height: 8),
-              Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-              Text(subtitle, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMaterialCard(BuildContext context, String name, String location, String quantity, String distance, String type) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 4)]),
-      child: Row(
-        children: [
-          Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(color: _getTypeColor(type).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-            child: Icon(_getTypeIcon(type), color: _getTypeColor(type), size: 22),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-                Row(
-                  children: [
-                    Icon(Icons.location_on_outlined, size: 12, color: Colors.grey.shade500),
-                    SizedBox(width: 4),
-                    Text(location, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(quantity, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary)),
-              Text(distance, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityItem(String title, String subtitle, String time, IconData icon, Color color) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 8),
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade100)),
-      child: Row(
-        children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
-                Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-              ],
-            ),
-          ),
-          Text(time, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
-        ],
-      ),
-    );
-  }
-
-  Color _getTypeColor(String type) {
-    switch (type.toLowerCase()) {
-      case 'electronic': return Colors.orange;
-      case 'metal': return Colors.blueGrey;
-      case 'plastic': return Colors.blue;
-      default: return Colors.green;
-    }
-  }
-
-  IconData _getTypeIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'electronic': return Icons.memory;
-      case 'metal': return Icons.hardware;
-      case 'plastic': return Icons.local_drink;
-      default: return Icons.inventory_2;
-    }
-  }
-
-  Drawer _buildDrawer(BuildContext context) {
-    return Drawer(
-      backgroundColor: Colors.white,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          Container(
-            padding: EdgeInsets.fromLTRB(16, 48, 16, 16),
-            color: Colors.grey.shade100,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.grey.shade300,
-                  child: Icon(Icons.person, color: Colors.grey.shade700, size: 28),
-                ),
-                SizedBox(height: 12),
-                Text('Shravanya', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('VESIT • IT Dept', style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
-              ],
-            ),
-          ),
-          ListTile(
-            leading: Icon(Icons.dashboard_outlined, color: Colors.grey.shade800),
-            title: Text('Dashboard', style: TextStyle(color: Colors.grey.shade800)),
-            onTap: () => Navigator.pop(context),
-          ),
-          ListTile(
-            leading: Icon(Icons.map_outlined, color: Colors.grey.shade800),
-            title: Text('Discover Materials', style: TextStyle(color: Colors.grey.shade800)),
-            onTap: () { Navigator.pop(context); context.push('/student-dashboard/discovery'); },
-          ),
-          ListTile(
-            leading: Icon(Icons.swap_horiz, color: Colors.grey.shade800),
-            title: Text('Skill Barter', style: TextStyle(color: Colors.grey.shade800)),
-            onTap: () { Navigator.pop(context); context.push('/barter'); },
-          ),
-          ListTile(
-            leading: Icon(Icons.add_circle_outline, color: Colors.grey.shade800),
-            title: Text('My Requests', style: TextStyle(color: Colors.grey.shade800)),
-            onTap: () { Navigator.pop(context); context.push('/requests'); },
-          ),
-          const Divider(),
-          ListTile(
-            leading: Icon(Icons.assessment_outlined, color: Colors.grey.shade800),
-            title: Text('Impact Dashboard', style: TextStyle(color: Colors.grey.shade800)),
-            onTap: () { Navigator.pop(context); context.push('/impact'); },
-          ),
-          ListTile(
-            leading: Icon(Icons.timeline_outlined, color: Colors.grey.shade800),
-            title: Text('Material Lifecycle', style: TextStyle(color: Colors.grey.shade800)),
-            onTap: () { Navigator.pop(context); context.push('/lifecycle'); },
-          ),
-          const Divider(),
-          ListTile(
-            leading: Icon(Icons.settings_outlined, color: Colors.grey.shade800),
-            title: Text('Settings', style: TextStyle(color: Colors.grey.shade800)),
-            onTap: () { Navigator.pop(context); context.push('/settings'); },
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () { Navigator.pop(context); context.go('/lab-dashboard'); },
-                    icon: Icon(Icons.science, size: 14),
-                    label: Text('Lab', style: TextStyle(fontSize: 11)),
-                    style: OutlinedButton.styleFrom(padding: EdgeInsets.symmetric(vertical: 6)),
-                  ),
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () { Navigator.pop(context); context.go('/admin-dashboard'); },
-                    icon: Icon(Icons.admin_panel_settings, size: 14),
-                    label: Text('Admin', style: TextStyle(fontSize: 11)),
-                    style: OutlinedButton.styleFrom(padding: EdgeInsets.symmetric(vertical: 6)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ListTile(
-            leading: Icon(Icons.logout_outlined, color: Colors.grey.shade800),
-            title: Text('Change Role', style: TextStyle(color: Colors.grey.shade800)),
-            onTap: () { Navigator.pop(context); context.go('/role-selection'); },
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _mobileAction(BuildContext context, String label, IconData ic, Color col, String route) => GestureDetector(
+    onTap: () => context.go(route),
+    child: Container(
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5EFE8))),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(width: 42, height: 42, decoration: BoxDecoration(color: col.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+          child: Icon(ic, color: col, size: 22)),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+      ]),
+    ),
+  );
 }

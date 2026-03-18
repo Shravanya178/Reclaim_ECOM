@@ -13,6 +13,7 @@ import 'package:reclaim/core/models/user.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/student_dashboard_screen.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/lab_dashboard_screen.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/admin_dashboard_screen.dart';
+import 'package:reclaim/features/dashboard/presentation/screens/scm_dashboard_screen.dart';
 
 // Student feature screens
 import 'package:reclaim/features/discovery/presentation/screens/discovery_map_screen.dart';
@@ -33,6 +34,14 @@ import 'package:reclaim/features/materials/presentation/screens/lifecycle_tracki
 import 'package:reclaim/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:reclaim/features/impact/presentation/screens/impact_dashboard_screen.dart';
 import 'package:reclaim/features/settings/presentation/screens/settings_screen.dart';
+
+// E-commerce screens
+import 'package:reclaim/features/ecommerce/presentation/screens/product_catalog_screen.dart';
+import 'package:reclaim/features/ecommerce/presentation/screens/cart_screen.dart';
+import 'package:reclaim/features/ecommerce/presentation/screens/checkout_screen.dart';
+import 'package:reclaim/features/ecommerce/presentation/screens/order_history_screen.dart';
+import 'package:reclaim/features/ecommerce/presentation/screens/order_detail_screen.dart';
+import 'package:reclaim/features/ecommerce/presentation/screens/admin_dashboard_screen.dart' as ecom_admin;
 
 part 'app_router.g.dart';
 
@@ -136,7 +145,49 @@ GoRouter appRouter(AppRouterRef ref) {
         name: 'admin-dashboard',
         builder: (context, state) => const AdminDashboardScreen(),
       ),
-      
+
+      // SCM Dashboard
+      GoRoute(
+        path: '/scm-dashboard',
+        name: 'scm-dashboard',
+        builder: (context, state) => const ScmDashboardScreen(),
+      ),
+
+      // ── E-Commerce Routes ──────────────────────────────────────────
+      GoRoute(
+        path: '/shop',
+        name: 'shop',
+        builder: (context, state) => const ProductCatalogScreen(),
+      ),
+      GoRoute(
+        path: '/cart',
+        name: 'cart',
+        builder: (context, state) => const CartScreen(),
+      ),
+      GoRoute(
+        path: '/checkout',
+        name: 'checkout',
+        builder: (context, state) => const CheckoutScreen(),
+      ),
+      GoRoute(
+        path: '/orders',
+        name: 'orders',
+        builder: (context, state) => const OrderHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/order/:id',
+        name: 'order-detail',
+        builder: (context, state) {
+          final orderId = state.pathParameters['id']!;
+          return OrderDetailScreen(orderId: orderId);
+        },
+      ),
+      GoRoute(
+        path: '/ecom-admin',
+        name: 'ecom-admin',
+        builder: (context, state) => const ecom_admin.AdminDashboardScreen(),
+      ),
+
       // Material Detail Route (shared)
       GoRoute(
         path: '/material/:id',

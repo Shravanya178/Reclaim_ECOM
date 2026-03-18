@@ -1,444 +1,249 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
-import 'package:reclaim/features/ecommerce/models/order.dart';
-import 'package:reclaim/features/ecommerce/providers/order_provider.dart';
+import 'package:reclaim/core/theme/app_theme.dart';
+import 'package:reclaim/core/widgets/responsive_builder.dart';
+import 'package:reclaim/core/widgets/responsive_scaffold.dart';
+import 'package:reclaim/core/widgets/web_navbar.dart';
+import 'package:reclaim/features/ecommerce/providers/local_cart_provider.dart';
 
-/// Order Detail Screen - Shows complete order information
 class OrderDetailScreen extends ConsumerWidget {
   final String orderId;
-
   const OrderDetailScreen({super.key, required this.orderId});
+
+  static const _steps = ['Order Placed', 'Confirmed', 'Dispatched', 'Out for Delivery', 'Delivered'];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final orderAsync = ref.watch(orderProvider(orderId));
-    final isDesktop = MediaQuery.of(context).size.width > 768;
-
-    return Scaffold(
-      backgroundColor: isDesktop ? Colors.grey.shade100 : Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text('Order Details'),
-        elevation: 0,
-        backgroundColor: Theme.of(context).colorScheme.primary,
+    final isMobile = Breakpoints.isMobile(context);
+    final cartCount = ref.watch(localCartCountProvider);
+    return ResponsiveScaffold(
+      currentRoute: '/orders',
+      cartItemCount: cartCount,
+      mobileAppBar: isMobile ? AppBar(
+        backgroundColor: AppTheme.primaryGreen,
         foregroundColor: Colors.white,
-      ),
-      body: orderAsync.when(
-        data: (order) {
-          if (order == null) {
-            return const Center(child: Text('Order not found'));
-          }
-
-          return SingleChildScrollView(
-            padding: isDesktop ? EdgeInsets.all(24) : EdgeInsets.zero,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 700),
-                child: Container(
-                  decoration: isDesktop ? BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
-                  ) : null,
-                  child: Column(
-                    children: [
-                      _buildStatusHeader(context, order),
-                      _buildOrderInfo(context, order),
-                      _buildOrderItems(context, order),
-                      _buildShippingAddress(context, order),
-                      _buildPriceSummary(context, order),
-                      if (order.trackingNumber != null) _buildTrackingInfo(context, order),
-                      if (order.canBeCancelled) _buildCancelButton(context, ref, order.id),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
-      ),
+        elevation: 0,
+        title: Text(orderId, style: const TextStyle(fontWeight: FontWeight.w700)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/orders')),
+      ) : null,
+      body: isMobile ? _mobile(context) : _desktop(context),
     );
   }
 
-  Widget _buildStatusHeader(BuildContext context, Order order) {
+  Widget _desktop(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    return SingleChildScrollView(child: Column(children: [
+      // header
+      Container(width: double.infinity,
+        decoration: const BoxDecoration(gradient: LinearGradient(
+          colors: [AppTheme.primaryDark, AppTheme.primaryGreen],
+          begin: Alignment.topLeft, end: Alignment.bottomRight)),
+        padding: const EdgeInsets.symmetric(vertical: 44),
+        child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 1280),
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 48), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            TextButton.icon(onPressed: (context as Element).findAncestorWidgetOfExactType<MaterialApp>() != null
+              ? () {} : () {},
+              icon: const Icon(Icons.chevron_left, color: Colors.white70),
+              label: const Text('Back to Orders', style: TextStyle(color: Colors.white70))),
+            const SizedBox(height: 8),
+            Row(children: [
+              Text(orderId, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
+              const SizedBox(width: 16),
+              _statusBadge('In Transit'),
+            ]),
+            const SizedBox(height: 4),
+            const Text('Placed on 08 Jun 2025', style: TextStyle(color: Colors.white60, fontSize: 14)),
+          ]))))),
+      Center(child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: AppTheme.contentMaxWidth(w)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Main
+            Expanded(flex: 3, child: Column(children: [
+              _trackingCard(),
+              const SizedBox(height: 24),
+              _itemsCard(),
+            ])),
+            const SizedBox(width: 28),
+            // Side
+            SizedBox(width: 320, child: Column(children: [
+              _infoCard('Shipping Address', [
+                _infoRow(Icons.person_outline,    'John Doe'),
+                _infoRow(Icons.phone_outlined,    '+91 9800000000'),
+                _infoRow(Icons.location_on_outlined, '102 Green Lane, Mumbai - 400001'),
+              ]),
+              const SizedBox(height: 16),
+              _infoCard('Payment', [
+                _infoRow(Icons.qr_code,      'UPI Payment'),
+                _infoRow(Icons.receipt_long, 'Rs.449.00'),
+              ]),
+              const SizedBox(height: 16),
+              _ecoCard(),
+            ])),
+          ]),
+        ),
+      )),
+      const WebFooter(),
+    ]));
+  }
+
+  Widget _trackingCard() => _card('Shipment Tracking', Icons.local_shipping_outlined, child: Column(children: [
+    const SizedBox(height: 8),
+    Row(children: List.generate(_steps.length * 2 - 1, (i) {
+      if (i.isOdd) {
+        final done = (i ~/ 2) < 2;
+        return Expanded(child: Container(height: 3, color: done ? AppTheme.primaryGreen : const Color(0xFFD4E6DA)));
+      }
+      final idx = i ~/ 2;
+      final done = idx < 3;
+      final active = idx == 2;
+      return Column(children: [
+        Container(width: 28, height: 28,
+          decoration: BoxDecoration(shape: BoxShape.circle,
+            color: done ? AppTheme.primaryGreen : Colors.white,
+            border: Border.all(color: done || active ? AppTheme.primaryGreen : const Color(0xFFD4E6DA), width: 2)),
+          child: Center(child: done
+            ? const Icon(Icons.check, color: Colors.white, size: 14)
+            : const SizedBox())),
+      ]);
+    })),
+    const SizedBox(height: 10),
+    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: _steps.map((s) {
+      final idx = _steps.indexOf(s);
+      final active = idx <= 2;
+      return SizedBox(width: 72, child: Text(s, textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 11, fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+          color: active ? AppTheme.primaryGreen : AppTheme.textSecondary)));
+    }).toList()),
+    const SizedBox(height: 20),
+    const Divider(color: Color(0xFFEAF1EB)),
+    const SizedBox(height: 16),
+    _trackEvent('08 Jun 2025 14:30', 'Out for Delivery', 'Carrier picked up from Andheri Hub', true),
+    _trackEvent('07 Jun 2025 09:15', 'Dispatched',       'Left VESIT dispatch center',           false),
+    _trackEvent('06 Jun 2025 18:00', 'Confirmed',         'Order confirmed by seller',            false),
+    _trackEvent('05 Jun 2025 12:42', 'Order Placed',      'Payment received',                     false),
+  ]));
+
+  Widget _trackEvent(String time, String title, String sub, bool latest) => Padding(
+    padding: const EdgeInsets.only(bottom: 16),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Column(children: [
+        Container(width: 12, height: 12,
+          decoration: BoxDecoration(shape: BoxShape.circle,
+            color: latest ? AppTheme.primaryGreen : Colors.grey.shade300,
+            border: Border.all(color: latest ? AppTheme.primaryGreen : Colors.grey.shade300, width: 2))),
+        if (!latest) Container(width: 1, height: 36, color: Colors.grey.shade200),
+      ]),
+      const SizedBox(width: 16),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14,
+          color: latest ? AppTheme.primaryGreen : AppTheme.textPrimary)),
+        const SizedBox(height: 2),
+        Text(sub, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+        const SizedBox(height: 2),
+        Text(time, style: const TextStyle(fontSize: 11, color: AppTheme.textHint)),
+      ])),
+    ]),
+  );
+
+  Widget _itemsCard() => _card('Items in Order', Icons.inventory_2_outlined, child: Column(children: [
+    _orderItem('Arduino Uno Rev3', 'Electronic', 1, 449),
+    const Divider(color: Color(0xFFEAF1EB)),
+    const SizedBox(height: 12),
+    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      const Text('Total', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+      const Text('Rs.449', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.primaryGreen)),
+    ]),
+  ]));
+
+  Widget _orderItem(String name, String cat, int qty, double price) => Padding(
+    padding: const EdgeInsets.only(bottom: 14),
+    child: Row(children: [
+      Container(width: 56, height: 56, decoration: BoxDecoration(color: AppTheme.primarySurface, borderRadius: BorderRadius.circular(10)),
+        child: const Icon(Icons.memory, color: AppTheme.primaryGreen, size: 26)),
+      const SizedBox(width: 16),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+        Text(cat, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+      ])),
+      Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        Text('Rs.${price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppTheme.primaryGreen)),
+        Text('Qty: $qty', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+      ]),
+    ]),
+  );
+
+  Widget _infoCard(String title, List<Widget> rows) => _card(title, null, child: Column(children: rows));
+
+  Widget _infoRow(IconData ic, String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Row(children: [
+      Icon(ic, size: 16, color: AppTheme.primaryGreen),
+      const SizedBox(width: 10),
+      Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
+    ]),
+  );
+
+  Widget _ecoCard() => Container(
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(color: AppTheme.primarySurface, borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppTheme.primaryLight.withOpacity(0.4))),
+    child: Column(children: [
+      const Icon(Icons.eco, size: 32, color: AppTheme.primaryGreen),
+      const SizedBox(height: 12),
+      const Text('Eco Impact', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppTheme.primaryGreen)),
+      const SizedBox(height: 6),
+      const Text('This order prevented 0.9 kg CO₂ and saved 1 item from landfill.',
+        textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppTheme.primaryGreen, height: 1.5)),
+    ]),
+  );
+
+  Widget _card(String title, IconData? ic, {required Widget child}) => Container(
+    width: double.infinity,
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: const Color(0xFFE5EFE8)),
+      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,3))]),
+    padding: const EdgeInsets.all(24),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        if (ic != null) ...[Icon(ic, size: 20, color: AppTheme.primaryGreen), const SizedBox(width: 10)],
+        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+      ]),
+      const SizedBox(height: 20),
+      child,
+    ]),
+  );
+
+  Widget _statusBadge(String status) {
+    const c = Color(0xFF3182CE);
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(24),
-      color: _getStatusColor(order.status).withOpacity(0.1),
-      child: Column(
-        children: [
-          Icon(
-            _getStatusIcon(order.status),
-            size: 64,
-            color: _getStatusColor(order.status),
-          ),
-          SizedBox(height: 12),
-          Text(
-            order.statusText,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: _getStatusColor(order.status),
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Order ${order.orderNumber}',
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-          ),
-        ],
-      ),
-    );
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(color: c.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 7, height: 7, decoration: const BoxDecoration(shape: BoxShape.circle, color: c)),
+        const SizedBox(width: 6),
+        Text(status, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: c)),
+      ]));
   }
 
-  Widget _buildOrderInfo(BuildContext context, Order order) {
-    final dateFormat = DateFormat('MMM dd, yyyy • hh:mm a');
-    
-    return Padding(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildInfoRow('Order Date', dateFormat.format(order.createdAt)),
-          _buildInfoRow('Payment Status', order.paymentStatusText),
-          if (order.notes != null) _buildInfoRow('Notes', order.notes!),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOrderItems(BuildContext context, Order order) {
-    if (order.items == null || order.items!.isEmpty) {
-      return const SizedBox();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            'Order Items',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        ),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          itemCount: order.items!.length,
-          separatorBuilder: (context, index) => Divider(height: 24),
-          itemBuilder: (context, index) {
-            final item = order.items![index];
-            return Row(
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: item.materialImageUrl != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(item.materialImageUrl!, fit: BoxFit.cover),
-                        )
-                      : Icon(Icons.inventory_2, size: 30, color: Colors.grey[400]),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.materialName,
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        item.materialType,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Qty: ${item.quantity} × ₹${item.unitPrice.toStringAsFixed(2)}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ),
-                Text(
-                  '₹${item.subtotal.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildShippingAddress(BuildContext context, Order order) {
-    return Padding(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Shipping Address',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(order.shippingAddress.addressLine1),
-                if (order.shippingAddress.addressLine2 != null)
-                  Text(order.shippingAddress.addressLine2!),
-                Text('${order.shippingAddress.city}, ${order.shippingAddress.state}'),
-                Text('${order.shippingAddress.postalCode}, ${order.shippingAddress.country}'),
-                if (order.shippingAddress.phone != null)
-                  Text('Phone: ${order.shippingAddress.phone}'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPriceSummary(BuildContext context, Order order) {
-    return Padding(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Price Details',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 12),
-          _buildPriceRow('Subtotal', order.subtotal),
-          _buildPriceRow('Tax', order.taxAmount),
-          _buildPriceRow('Shipping', order.shippingAmount),
-          if (order.discountAmount > 0) _buildPriceRow('Discount', -order.discountAmount),
-          Divider(height: 24),
-          _buildPriceRow('Total', order.totalAmount, isTotal: true),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPriceRow(String label, double amount, {bool isTotal = false}) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isTotal ? 16 : 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          Text(
-            '₹${amount.toStringAsFixed(2)}',
-            style: TextStyle(
-              fontSize: isTotal ? 18 : 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTrackingInfo(BuildContext context, Order order) {
-    return Padding(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Tracking Information',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.local_shipping, color: Colors.blue),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Tracking Number', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                      Text(
-                        order.trackingNumber!,
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCancelButton(BuildContext context, WidgetRef ref, String orderId) {
-    return Padding(
-      padding: EdgeInsets.all(16),
-      child: SizedBox(
-        width: double.infinity,
-        height: 48,
-        child: OutlinedButton(
-          onPressed: () => _showCancelDialog(context, ref, orderId),
-          style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-          child: const Text('Cancel Order'),
-        ),
-      ),
-    );
-  }
-
-  void _showCancelDialog(BuildContext context, WidgetRef ref, String orderId) {
-    final reasonController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel Order'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Please provide a reason for cancellation:'),
-            SizedBox(height: 12),
-            TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(
-                hintText: 'Reason for cancellation',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Back'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final reason = reasonController.text.trim();
-              if (reason.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please provide a reason')),
-                );
-                return;
-              }
-              
-              Navigator.pop(context);
-              
-              final cancelOrder = ref.read(cancelOrderProvider);
-              final success = await cancelOrder(orderId, reason);
-              
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(success ? 'Order cancelled successfully' : 'Failed to cancel order'),
-                    backgroundColor: success ? Colors.green : Colors.red,
-                  ),
-                );
-                
-                if (success) {
-                  ref.invalidate(orderProvider(orderId));
-                }
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Cancel Order'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _getStatusColor(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.delivered:
-        return Colors.green;
-      case OrderStatus.shipped:
-        return Colors.blue;
-      case OrderStatus.cancelled:
-      case OrderStatus.refunded:
-        return Colors.red;
-      case OrderStatus.processing:
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getStatusIcon(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.delivered:
-        return Icons.check_circle;
-      case OrderStatus.shipped:
-        return Icons.local_shipping;
-      case OrderStatus.cancelled:
-      case OrderStatus.refunded:
-        return Icons.cancel;
-      case OrderStatus.processing:
-        return Icons.sync;
-      default:
-        return Icons.pending;
-    }
-  }
+  Widget _mobile(BuildContext context) => ListView(
+    padding: const EdgeInsets.all(16),
+    children: [
+      _trackingCard(),
+      const SizedBox(height: 16),
+      _itemsCard(),
+      const SizedBox(height: 16),
+      _infoCard('Shipping Address', [
+        _infoRow(Icons.person_outline, 'John Doe'),
+        _infoRow(Icons.phone_outlined, '+91 9800000000'),
+        _infoRow(Icons.location_on_outlined, '102 Green Lane, Mumbai - 400001'),
+      ]),
+      const SizedBox(height: 16),
+      _ecoCard(),
+      const SizedBox(height: 24),
+    ],
+  );
 }
