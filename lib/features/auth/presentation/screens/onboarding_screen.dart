@@ -1,5 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:reclaim/core/theme/app_theme.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
@@ -58,7 +59,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       Breakpoints.isMobile(context) ? _mobile() : _desktop();
 
   Widget _desktop() => Scaffold(
-    backgroundColor: AppTheme.backgroundLight,
+    backgroundColor: Colors.transparent,
     body: SingleChildScrollView(
       child: Column(children: [
         _DesktopHero(fadeAnim: _fadeAnim, slideAnim: _slideAnim),
@@ -72,57 +73,48 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   );
 
   Widget _mobile() => Scaffold(
-    backgroundColor: AppTheme.primaryDark,
-    body: Stack(children: [
-      Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft, end: Alignment.bottomRight,
-            colors: [Color(0xFF1B4332), Color(0xFF2D6A4F), Color(0xFF40916C)]),
+    backgroundColor: Colors.transparent,
+    body: SafeArea(
+      child: Column(children: [
+        Align(alignment: Alignment.topRight,
+          child: TextButton(onPressed: () => context.go('/auth'),
+            child: const Text('Skip', style: TextStyle(color: Colors.white70, fontSize: 14)))),
+        Expanded(
+          child: PageView.builder(
+            controller: _pageCtrl,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemCount: _pages.length,
+            itemBuilder: (_, i) => _MobilePage(_pages[i]),
+          ),
         ),
-      ),
-      SafeArea(
-        child: Column(children: [
-          Align(alignment: Alignment.topRight,
-            child: TextButton(onPressed: () => context.go('/auth'),
-              child: const Text('Skip', style: TextStyle(color: Colors.white70, fontSize: 14)))),
-          Expanded(
-            child: PageView.builder(
-              controller: _pageCtrl,
-              onPageChanged: (i) => setState(() => _page = i),
-              itemCount: _pages.length,
-              itemBuilder: (_, i) => _MobilePage(_pages[i]),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 0, 28, 32),
-            child: Column(children: [
-              Row(mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_pages.length, (i) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: i == _page ? 24 : 8, height: 8,
-                  decoration: BoxDecoration(
-                    color: i == _page ? Colors.white : Colors.white38,
-                    borderRadius: BorderRadius.circular(4))))),
-              const SizedBox(height: 28),
-              SizedBox(width: double.infinity, height: 52,
-                child: ElevatedButton(
-                  onPressed: _next,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white, foregroundColor: AppTheme.primaryDark,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
-                  child: Text(_page < _pages.length - 1 ? 'Continue' : 'Get Started',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)))),
-              const SizedBox(height: 14),
-              TextButton(onPressed: () => context.go('/auth'),
-                child: const Text('Already have an account? Sign In',
-                  style: TextStyle(color: Colors.white70, fontSize: 13))),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 0, 28, 32),
+          child: Column(children: [
+            Row(mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_pages.length, (i) => AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: i == _page ? 24 : 8, height: 8,
+                decoration: BoxDecoration(
+                  color: i == _page ? Colors.white : Colors.white38,
+                  borderRadius: BorderRadius.circular(4))))),
+            const SizedBox(height: 28),
+            SizedBox(width: double.infinity, height: 52,
+              child: ElevatedButton(
+                onPressed: _next,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white, foregroundColor: AppTheme.primaryDark,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
+                child: Text(_page < _pages.length - 1 ? 'Continue' : 'Get Started',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)))),
+            const SizedBox(height: 14),
+            TextButton(onPressed: () => context.go('/auth'),
+              child: const Text('Already have an account? Sign In',
+                style: TextStyle(color: Colors.white70, fontSize: 13))),
+          ]),
+        ),
+      ]),
+    ),
   );
 }
 
@@ -166,14 +158,24 @@ class _DesktopHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
-        colors: [Color(0xFF1B4332), Color(0xFF2D6A4F), Color(0xFF40916C)])),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          const Color(0xFF1B4332).withOpacity(0.7),
+          const Color(0xFF2D6A4F).withOpacity(0.5),
+          const Color(0xFF40916C).withOpacity(0.4),
+          const Color(0xFF1B4332).withOpacity(0.7),
+        ],
+      ),
+    ),
     child: Stack(children: [
+      // Decorative elements (keeping these for visual enhancement)
       Positioned(top: -80, right: -80, child: Container(width: 400, height: 400,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.04)))),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.04)))),
       Positioned(bottom: -60, left: 100, child: Container(width: 300, height: 300,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.04)))),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.04)))),
       Center(child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1200),
         child: Padding(
@@ -183,15 +185,42 @@ class _DesktopHero extends StatelessWidget {
               Expanded(flex: 5, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2), 
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  ),
                   child: const Text('Campus Circular Economy Platform',
                     style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5))),
                 const SizedBox(height: 24),
                 const Text('Transform Lab Waste\nInto Opportunity',
-                  style: TextStyle(color: Colors.white, fontSize: 52, fontWeight: FontWeight.w900, height: 1.15)),
+                  style: TextStyle(
+                    color: Colors.white, 
+                    fontSize: 52, 
+                    fontWeight: FontWeight.w900, 
+                    height: 1.15,
+                    shadows: [
+                      Shadow(
+                        offset: Offset(0, 2),
+                        blurRadius: 8,
+                        color: Colors.black45,
+                      ),
+                    ],
+                  )),
                 const SizedBox(height: 20),
                 Text('ReClaim connects campus labs, students, and sustainability managers in a verified circular economy. AI-powered material detection, instant marketplace, and real-time eco impact tracking.',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 17, height: 1.65)),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9), 
+                    fontSize: 17, 
+                    height: 1.65,
+                    shadows: [
+                      Shadow(
+                        offset: Offset(0, 1),
+                        blurRadius: 4,
+                        color: Colors.black38,
+                      ),
+                    ],
+                  )),
                 const SizedBox(height: 36),
                 Row(children: [
                   _HBtn('Get Started Free', true, () => context.go('/auth')),
@@ -216,8 +245,30 @@ class _DesktopHero extends StatelessWidget {
   );
 
   Widget _hStat(String v, String l) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(v, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
-    Text(l, style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 12, fontWeight: FontWeight.w500)),
+    Text(v, style: const TextStyle(
+      color: Colors.white, 
+      fontSize: 22, 
+      fontWeight: FontWeight.w800,
+      shadows: [
+        Shadow(
+          offset: Offset(0, 1),
+          blurRadius: 4,
+          color: Colors.black45,
+        ),
+      ],
+    )),
+    Text(l, style: TextStyle(
+      color: Colors.white.withOpacity(0.8), 
+      fontSize: 12, 
+      fontWeight: FontWeight.w500,
+      shadows: [
+        Shadow(
+          offset: Offset(0, 1),
+          blurRadius: 3,
+          color: Colors.black38,
+        ),
+      ],
+    )),
   ]);
 }
 
@@ -242,10 +293,31 @@ class _HeroCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.2))),
+      color: Colors.white.withOpacity(0.15), 
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(color: Colors.white.withOpacity(0.3)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.2),
+          blurRadius: 20,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    ),
     child: Column(children: [
-      Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+      Container(
+        padding: const EdgeInsets.all(16), 
+        decoration: BoxDecoration(
+          color: Colors.white, 
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Container(width: 38, height: 38, decoration: BoxDecoration(color: AppTheme.primarySurface, borderRadius: BorderRadius.circular(9)),
@@ -270,8 +342,14 @@ class _HeroCard extends StatelessWidget {
       Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(
           gradient: const LinearGradient(colors: [Color(0xFF2D6A4F), Color(0xFF40916C)], begin: Alignment.topLeft, end: Alignment.bottomRight),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.20), blurRadius: 10, offset: const Offset(0,4))]),
+          border: Border.all(color: Colors.white.withOpacity(0.4)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.25), 
+              blurRadius: 12, 
+              offset: const Offset(0,6)
+            )
+          ]),
         child: Row(children: [
           Container(width: 30, height: 30, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(7)),
             child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 16)),
@@ -285,8 +363,14 @@ class _HeroCard extends StatelessWidget {
       Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(
           gradient: const LinearGradient(colors: [Color(0xFF1B5E3B), Color(0xFF2D6A4F)], begin: Alignment.topLeft, end: Alignment.bottomRight),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.20), blurRadius: 10, offset: const Offset(0,4))]),
+          border: Border.all(color: Colors.white.withOpacity(0.4)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.25), 
+              blurRadius: 12, 
+              offset: const Offset(0,6)
+            )
+          ]),
         child: Row(children: [
           Container(width: 30, height: 30, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(7)),
             child: const Icon(Icons.eco, color: Colors.white, size: 16)),

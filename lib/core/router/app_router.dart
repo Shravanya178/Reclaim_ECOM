@@ -33,7 +33,9 @@ import 'package:reclaim/features/materials/presentation/screens/material_detail_
 import 'package:reclaim/features/materials/presentation/screens/lifecycle_tracking_screen.dart';
 import 'package:reclaim/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:reclaim/features/impact/presentation/screens/impact_dashboard_screen.dart';
+import 'package:reclaim/features/impact/presentation/screens/rankings_screen.dart';
 import 'package:reclaim/features/settings/presentation/screens/settings_screen.dart';
+import 'package:reclaim/features/capture/presentation/screens/detection_screen.dart';
 
 // E-commerce screens
 import 'package:reclaim/features/ecommerce/presentation/screens/product_catalog_screen.dart';
@@ -208,6 +210,16 @@ GoRouter appRouter(AppRouterRef ref) {
         path: '/impact',
         name: 'impact-dashboard',
         builder: (context, state) => const ImpactDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/rankings',
+        name: 'rankings',
+        builder: (context, state) => const RankingsScreen(),
+      ),
+      GoRoute(
+        path: '/detection',
+        name: 'detection',
+        builder: (context, state) => const DetectionScreen(),
       ),
       GoRoute(
         path: '/settings',

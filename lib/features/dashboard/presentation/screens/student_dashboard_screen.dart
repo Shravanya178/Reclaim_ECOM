@@ -6,6 +6,7 @@ import 'package:reclaim/core/theme/app_theme.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
 import 'package:reclaim/core/widgets/web_navbar.dart';
+import 'package:reclaim/features/impact/widgets/impact_dashboard.dart';
 
 class StudentDashboardScreen extends ConsumerWidget {
   const StudentDashboardScreen({super.key});
@@ -76,6 +77,8 @@ class StudentDashboardScreen extends ConsumerWidget {
                 _activityFeed(),
                 const SizedBox(height: 20),
                 _ecoScore(),
+                const SizedBox(height: 20),
+                const ImpactDashboard(),
               ])),
             ]),
           ]),

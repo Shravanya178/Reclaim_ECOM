@@ -153,6 +153,8 @@ class ResponsiveScaffold extends StatelessWidget {
           _drawerItem(context, Icons.swap_horiz, 'Skill Barter', '/barter'),
           _drawerItem(context, Icons.add_circle_outline, 'Requests', '/requests'),
           _drawerItem(context, Icons.eco_outlined, 'Impact', '/impact'),
+          _drawerItem(context, Icons.document_scanner_outlined, 'Detection', '/detection'),
+          _drawerItem(context, Icons.emoji_events_outlined, 'Rankings', '/rankings'),
           const Divider(),
           _drawerItem(context, Icons.science_outlined, 'Lab Dashboard', '/lab-dashboard'),
           _drawerItem(context, Icons.admin_panel_settings_outlined, 'Admin Panel', '/admin-dashboard'),

@@ -5,6 +5,8 @@ import 'package:reclaim/core/theme/app_theme.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/web_navbar.dart';
+import 'package:reclaim/features/dashboard/widgets/most_requested_materials_chart.dart';
+import 'package:reclaim/features/dashboard/widgets/supply_demand_table.dart';
 
 // ─── Data Models ─────────────────────────────────────────────────────────────
 class _Stat {
@@ -84,7 +86,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 4, vsync: this)
+    _tab = TabController(length: 5, vsync: this)
       ..addListener(() => setState(() {}));
   }
 
@@ -119,6 +121,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
               _ZonesTab(zones: _zones, isMobile: isMobile),
               _UsersTab(users: _users, search: _userSearch,
                 onSearch: (v) => setState(() => _userSearch = v)),
+              const _AnalyticsTab(),
             ]),
           ),
         ],
@@ -145,6 +148,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
         Tab(icon: Icon(Icons.inventory_outlined, size: 18), text: 'Materials'),
         Tab(icon: Icon(Icons.location_city_outlined, size: 18), text: 'Zones'),
         Tab(icon: Icon(Icons.people_outlined, size: 18), text: 'Users'),
+        Tab(icon: Icon(Icons.bar_chart_outlined, size: 18), text: 'Analytics'),
       ],
     ),
   );
@@ -635,3 +639,180 @@ class _StatusBadge extends StatelessWidget {
   );
 }
 
+
+// ─── Analytics Tab ────────────────────────────────────────────────────────────
+class _AnalyticsTab extends StatelessWidget {
+  const _AnalyticsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    final isMobile = Breakpoints.isMobile(context);
+
+    return SingleChildScrollView(
+      padding: AppTheme.pagePadding(w),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Section header
+        Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryGreen.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.bar_chart, color: AppTheme.primaryGreen, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Analytics & Insights',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary)),
+            Text('Material demand trends and supply gap analysis',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+          ]),
+          const Spacer(),
+          // Export button
+          OutlinedButton.icon(
+            onPressed: () {},
+            icon: const Icon(Icons.download_outlined, size: 16),
+            label: const Text('Export Report'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primaryGreen,
+              side: const BorderSide(color: AppTheme.primaryGreen),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 28),
+
+        // Quick stats row
+        isMobile
+            ? Column(children: _analyticsStats().map((w) => Padding(
+                padding: const EdgeInsets.only(bottom: 12), child: w)).toList())
+            : Row(children: _analyticsStats()
+                .asMap().entries.map((e) => Expanded(
+                  child: Container(
+                    margin: EdgeInsets.only(right: e.key < 3 ? 16 : 0),
+                    child: e.value,
+                  ),
+                )).toList()),
+        const SizedBox(height: 28),
+
+        // Chart + Table
+        isMobile
+            ? const Column(children: [
+                MostRequestedMaterialsChart(),
+                SizedBox(height: 20),
+                SupplyDemandTable(),
+              ])
+            : const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: MostRequestedMaterialsChart()),
+                  SizedBox(width: 24),
+                  Expanded(child: SupplyDemandTable()),
+                ],
+              ),
+        const SizedBox(height: 28),
+
+        // Trend summary
+        _trendSummary(),
+        const SizedBox(height: 20),
+      ]),
+    );
+  }
+
+  List<Widget> _analyticsStats() {
+    final items = [
+      ('Total Requests', '156', '+18%', Icons.trending_up, AppTheme.primaryGreen),
+      ('Avg Supply Ratio', '74%', '-3%', Icons.inventory_2_outlined, AppTheme.info),
+      ('Critical Items', '2', '+1', Icons.warning_amber_outlined, AppTheme.error),
+      ('Surplus Items', '3', '+2', Icons.check_circle_outline, AppTheme.success),
+    ];
+    return items.map((s) => Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5EFE8)),
+        boxShadow: [BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Row(children: [
+        Container(
+          width: 40, height: 40,
+          decoration: BoxDecoration(
+            color: s.$5.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(s.$4, color: s.$5, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(s.$1, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+          const SizedBox(height: 2),
+          Row(children: [
+            Text(s.$2, style: TextStyle(
+                fontSize: 20, fontWeight: FontWeight.w700, color: s.$5)),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: s.$3.startsWith('+') && !s.$3.contains('-')
+                    ? AppTheme.success.withOpacity(0.1)
+                    : AppTheme.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(s.$3, style: TextStyle(
+                  fontSize: 10, fontWeight: FontWeight.w600,
+                  color: s.$3.startsWith('+') && !s.$3.contains('-')
+                      ? AppTheme.success : AppTheme.error)),
+            ),
+          ]),
+        ])),
+      ]),
+    )).toList();
+  }
+
+  Widget _trendSummary() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryGreen.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.2)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.insights, color: AppTheme.primaryGreen, size: 20),
+          const SizedBox(width: 8),
+          Text('Key Insights',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary)),
+        ]),
+        const SizedBox(height: 16),
+        Wrap(spacing: 12, runSpacing: 12, children: [
+          _insightChip('⚠️ Metal Alloys critically low — restock needed', AppTheme.error),
+          _insightChip('✅ Electronic Components well stocked (surplus)', AppTheme.success),
+          _insightChip('📈 Plastic demand up 20% this month', AppTheme.warning),
+          _insightChip('🔄 Chemical Reagents perfectly balanced', AppTheme.info),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _insightChip(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(text,
+          style: TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
+    );
+  }
+}

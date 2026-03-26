@@ -70,9 +70,24 @@
     position: relative; width: 100%; height: 100vh;
     display: flex; align-items: center; overflow: hidden;
   }
+  #video-background {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: 1;
+    opacity: 0.7;
+  }
+  #video-overlay {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, 
+      rgba(10,26,16,0.8) 0%, 
+      rgba(27,67,50,0.6) 30%, 
+      rgba(45,106,79,0.4) 60%, 
+      rgba(10,26,16,0.8) 100%);
+    z-index: 2;
+  }
   #three-canvas {
     position: absolute; inset: 0; width: 100%; height: 100%;
-    pointer-events: none;
+    pointer-events: none; z-index: 3;
+    opacity: 0.6;
   }
   .hero-content {
     position: relative; z-index: 10;
@@ -136,14 +151,18 @@
   }
   .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 1100px; margin: 0 auto; }
   .stat-card {
-    background: var(--card-bg);
-    border: 1px solid rgba(82,183,136,.2);
+    background: rgba(27,67,50,0.7);
+    border: 1px solid rgba(82,183,136,.3);
     border-radius: 20px; padding: 32px 28px;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
     text-align: center;
-    transition: transform .3s, box-shadow .3s;
+    transition: transform .3s, box-shadow .3s, border-color .3s;
   }
-  .stat-card:hover { transform: translateY(-6px); box-shadow: 0 20px 60px rgba(82,183,136,.15); }
+  .stat-card:hover { 
+    transform: translateY(-8px); 
+    box-shadow: 0 25px 70px rgba(82,183,136,.2);
+    border-color: rgba(82,183,136,.6);
+  }
   .stat-icon { font-size: 2rem; margin-bottom: 12px; }
   .stat-num { font-size: 2.8rem; font-weight: 900; color: var(--accent); letter-spacing: -1px; line-height: 1; }
   .stat-label { font-size: .85rem; color: var(--text2); margin-top: 6px; font-weight: 500; }
@@ -165,21 +184,27 @@
   .section-sub { color: var(--text2); font-size: 1.05rem; line-height: 1.7; max-width: 540px; margin-bottom: 60px; }
   .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
   .feat-card {
-    background: var(--card-bg);
-    border: 1px solid rgba(82,183,136,.15);
+    background: rgba(27,67,50,0.6);
+    border: 1px solid rgba(82,183,136,.25);
     border-radius: 24px; padding: 36px 30px;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(20px);
     position: relative; overflow: hidden;
     cursor: default;
     transform-style: preserve-3d;
-    transition: box-shadow .3s;
+    transition: box-shadow .3s, transform .3s, border-color .3s;
   }
   .feat-card::before {
     content: ''; position: absolute; inset: 0;
-    background: radial-gradient(circle at 30% 20%, rgba(82,183,136,.1), transparent 60%);
+    background: radial-gradient(circle at 30% 20%, rgba(82,183,136,.15), transparent 60%);
     pointer-events: none;
+    transition: opacity .3s;
   }
-  .feat-card:hover { box-shadow: 0 24px 64px rgba(82,183,136,.2); }
+  .feat-card:hover { 
+    box-shadow: 0 30px 80px rgba(82,183,136,.25);
+    border-color: rgba(82,183,136,.5);
+    transform: translateY(-6px);
+  }
+  .feat-card:hover::before { opacity: 1.5; }
   .feat-icon {
     width: 54px; height: 54px; border-radius: 14px;
     background: linear-gradient(135deg, rgba(82,183,136,.25), rgba(82,183,136,.05));
@@ -219,26 +244,54 @@
     border-radius: 20px; overflow: hidden; position: relative;
     aspect-ratio: 4/3;
     background: var(--card-bg);
-    border: 1px solid rgba(82,183,136,.15);
+    border: 1px solid rgba(82,183,136,.25);
     display: flex; flex-direction: column; justify-content: flex-end;
     padding: 22px;
-    transition: transform .3s;
+    transition: transform .3s, box-shadow .3s, border-color .3s;
     cursor: pointer;
+    backdrop-filter: blur(16px);
   }
   .mat-card::before {
     content: ''; position: absolute; inset: 0;
-    background: linear-gradient(to top, rgba(10,26,16,.9) 0%, transparent 55%);
+    background: linear-gradient(135deg, 
+      rgba(82,183,136,0.1) 0%, 
+      rgba(10,26,16,0.9) 50%, 
+      rgba(27,67,50,0.8) 100%);
+    transition: opacity .3s;
   }
-  .mat-card:hover { transform: scale(1.03); }
-  .mat-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-60%); font-size: 3.5rem; opacity: .4; }
+  .mat-card:hover { 
+    transform: scale(1.05) translateY(-8px); 
+    box-shadow: 0 25px 50px rgba(82,183,136,.3);
+    border-color: rgba(82,183,136,.6);
+  }
+  .mat-card:hover::before { opacity: 0.8; }
+  .mat-icon { 
+    position: absolute; top: 50%; left: 50%; 
+    transform: translate(-50%,-60%); 
+    font-size: 3.5rem; opacity: .5;
+    transition: transform .3s, opacity .3s;
+  }
+  .mat-card:hover .mat-icon {
+    transform: translate(-50%,-60%) scale(1.1);
+    opacity: .7;
+  }
   .mat-info { position: relative; z-index: 1; }
-  .mat-name { font-size: 1.05rem; font-weight: 800; }
-  .mat-price { color: var(--accent); font-weight: 700; font-size: 1.1rem; }
+  .mat-name { 
+    font-size: 1.05rem; font-weight: 800; 
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  .mat-price { 
+    color: var(--accent); font-weight: 700; font-size: 1.1rem;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
   .mat-tag {
     position: absolute; top: 16px; right: 16px; z-index: 1;
-    background: rgba(82,183,136,.2); border: 1px solid rgba(82,183,136,.4);
-    color: var(--light); border-radius: 6px;
-    padding: 3px 10px; font-size: .72rem; font-weight: 700;
+    background: rgba(82,183,136,.3); 
+    border: 1px solid rgba(82,183,136,.6);
+    backdrop-filter: blur(8px);
+    color: var(--white); border-radius: 8px;
+    padding: 4px 12px; font-size: .72rem; font-weight: 700;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
   }
 
   /* ── CTA ── */
@@ -277,6 +330,11 @@
     nav { padding: 16px 24px; }
     .nav-links { display: none; }
     .hero-content { padding: 0 24px; }
+    #video-background { 
+      /* Ensure video covers properly on mobile */
+      object-fit: cover;
+      object-position: center;
+    }
     .stats-grid { grid-template-columns: repeat(2,1fr); }
     .features-grid { grid-template-columns: 1fr; }
     #features, #materials, #how, #cta { padding: 70px 24px; }
@@ -290,6 +348,27 @@
     .materials-grid { grid-template-columns: 1fr; }
     .hero-btns { flex-direction: column; }
     .cta-btns { flex-direction: column; align-items: center; }
+    #video-background {
+      /* Mobile optimization */
+      height: 100vh;
+      width: 100vw;
+    }
+  }
+  
+  /* ── VIDEO BACKGROUND OPTIMIZATIONS ── */
+  @media (prefers-reduced-motion: reduce) {
+    #video-background {
+      display: none;
+    }
+    #three-canvas {
+      opacity: 1 !important;
+    }
+  }
+  
+  /* Ensure video doesn't interfere with text selection */
+  #video-background {
+    pointer-events: none;
+    user-select: none;
   }
 
   /* ── REVEAL ANIMATION CLASSES ── */
@@ -326,6 +405,16 @@
 
 <!-- ── HERO ────────────────────────────────────────────────────────────────── -->
 <section id="hero">
+  <!-- Video Background -->
+  <video id="video-background" autoplay muted loop playsinline>
+    <source src="../assets/videos/26070-357512237_medium.mp4" type="video/mp4">
+    <!-- Fallback for browsers that don't support video -->
+  </video>
+  
+  <!-- Video Overlay for better text readability -->
+  <div id="video-overlay"></div>
+  
+  <!-- Three.js Canvas (reduced opacity to complement video) -->
   <canvas id="three-canvas"></canvas>
 
   <div class="hero-content" id="hero-text">
@@ -544,6 +633,38 @@
 </footer>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
+     VIDEO BACKGROUND HANDLER
+ ═══════════════════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+  const video = document.getElementById('video-background');
+  const threeCanvas = document.getElementById('three-canvas');
+  
+  // Handle video loading
+  video.addEventListener('loadeddata', function() {
+    console.log('Video loaded successfully');
+    // Reduce Three.js opacity when video is available
+    threeCanvas.style.opacity = '0.3';
+  });
+  
+  video.addEventListener('error', function(e) {
+    console.log('Video failed to load, using Three.js fallback');
+    // Hide video and show full Three.js scene
+    video.style.display = 'none';
+    document.getElementById('video-overlay').style.display = 'none';
+    threeCanvas.style.opacity = '1';
+  });
+  
+  // Ensure video plays on user interaction (mobile requirement)
+  document.addEventListener('click', function() {
+    if (video.paused) {
+      video.play().catch(e => console.log('Video autoplay failed:', e));
+    }
+  }, { once: true });
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
      THREE.JS SCENE
  ═══════════════════════════════════════════════════════════════════════════ -->
 <script>
@@ -552,7 +673,7 @@
   const canvas = document.getElementById('three-canvas');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setClearColor(0x000000, 0);
+  renderer.setClearColor(0x000000, 0); // Fully transparent
   renderer.setSize(window.innerWidth, window.innerHeight);
 
   const scene = new THREE.Scene();

@@ -99,6 +99,18 @@ class WebNavBar extends StatelessWidget implements PreferredSizeWidget {
                     isActive: currentRoute == '/orders',
                     onTap: () => context.go('/orders'),
                   ),
+                  _NavLink(
+                    label: 'Detection',
+                    icon: Icons.document_scanner_outlined,
+                    isActive: currentRoute == '/detection',
+                    onTap: () => context.go('/detection'),
+                  ),
+                  _NavLink(
+                    label: 'Rankings',
+                    icon: Icons.emoji_events_outlined,
+                    isActive: currentRoute == '/rankings',
+                    onTap: () => context.go('/rankings'),
+                  ),
                 ],
 
                 const Spacer(),
