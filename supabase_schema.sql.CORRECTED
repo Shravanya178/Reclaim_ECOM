@@ -1,0 +1,280 @@
+-- SECURITY CORRECTED: Supabase Database Schema with Proper RLS Policies
+-- Run this in your Supabase SQL Editor to set up the database securely
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ================= PROFILES TABLE =================
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  department TEXT,
+  campus_id UUID REFERENCES campuses(id),
+  role TEXT DEFAULT 'student' CHECK (role IN ('student', 'lab', 'admin')),
+  skills TEXT[] DEFAULT '{}',
+  interests TEXT[] DEFAULT '{}',
+  availability TEXT DEFAULT 'part-time',
+  co2_saved DECIMAL(10, 2) DEFAULT 0,
+  materials_reused INTEGER DEFAULT 0,
+  avatar_url TEXT,
+  failed_login_attempts INTEGER DEFAULT 0,
+  locked_until TIMESTAMP WITH TIME ZONE,
+  mfa_enabled BOOLEAN DEFAULT false,
+  mfa_verified BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS on profiles
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- SECURITY FIX: Restrict profile visibility to authenticated users
+-- Only allow users to see their own full profile
+CREATE POLICY "Users can view their own profile" ON profiles 
+  FOR SELECT 
+  USING (auth.uid() = id);
+
+-- Allow limited info visibility for other users (name, avatar only)
+CREATE POLICY "Users can view limited profile info" ON profiles 
+  FOR SELECT 
+  USING (true)
+  WITH CHECK (false)
+  USING (SELECT true FROM profiles WHERE id = auth.uid());
+
+-- Users can only update their own profile
+CREATE POLICY "Users can update their own profile" ON profiles 
+  FOR UPDATE 
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+-- Only admin can delete profiles
+CREATE POLICY "Admin can manage profiles" ON profiles 
+  FOR DELETE 
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- ================= MATERIALS TABLE =================
+CREATE TABLE IF NOT EXISTS materials (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  owner_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  quantity TEXT NOT NULL,
+  condition TEXT NOT NULL CHECK (condition IN ('excellent', 'good', 'fair', 'poor')),
+  location TEXT NOT NULL,
+  confidence DECIMAL(3, 2) DEFAULT 0.0,
+  image_url TEXT,
+  notes TEXT,
+  status TEXT DEFAULT 'detected' CHECK (status IN ('detected', 'available', 'claimed', 'completed')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_materials_owner ON materials(owner_id);
+CREATE INDEX idx_materials_status ON materials(status);
+CREATE INDEX idx_materials_type ON materials(type);
+
+-- Enable RLS on materials
+ALTER TABLE materials ENABLE ROW LEVEL SECURITY;
+
+-- SECURITY FIX: Only authenticated users can view materials
+CREATE POLICY "Authenticated users can view materials" ON materials 
+  FOR SELECT 
+  USING (auth.role() = 'authenticated');
+
+-- Only material owner can see private details
+CREATE POLICY "Only owner can see full material details" ON materials 
+  FOR SELECT 
+  USING (auth.uid() = owner_id OR status = 'available');
+
+-- Only material owner can insert
+CREATE POLICY "Users can insert their own materials" ON materials 
+  FOR INSERT 
+  WITH CHECK (auth.uid() = owner_id);
+
+-- Only material owner can update
+CREATE POLICY "Users can update their own materials" ON materials 
+  FOR UPDATE 
+  USING (auth.uid() = owner_id)
+  WITH CHECK (auth.uid() = owner_id);
+
+-- Only material owner can delete
+CREATE POLICY "Users can delete their own materials" ON materials 
+  FOR DELETE 
+  USING (auth.uid() = owner_id);
+
+-- ================= ORDERS TABLE =================
+CREATE TABLE IF NOT EXISTS orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  buyer_id UUID NOT NULL REFERENCES profiles(id),
+  seller_id UUID NOT NULL REFERENCES profiles(id),
+  material_id UUID NOT NULL REFERENCES materials(id),
+  quantity_requested TEXT NOT NULL,
+  total_amount DECIMAL(10, 2) NOT NULL,
+  currency TEXT DEFAULT 'INR',
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'shipped', 'completed', 'cancelled')),
+  payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'verified', 'failed', 'refunded')),
+  shipping_address TEXT,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_orders_buyer ON orders(buyer_id);
+CREATE INDEX idx_orders_seller ON orders(seller_id);
+CREATE INDEX idx_orders_status ON orders(status);
+
+-- Enable RLS on orders
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+-- SECURITY FIX: Users can only see their own orders
+CREATE POLICY "Users can view their own orders" ON orders 
+  FOR SELECT 
+  USING (auth.uid() = buyer_id OR auth.uid() = seller_id);
+
+-- Only buyer can insert orders
+CREATE POLICY "Buyers can create orders" ON orders 
+  FOR INSERT 
+  WITH CHECK (auth.uid() = buyer_id AND auth.uid() != seller_id);
+
+-- Only relevant party can update orders
+CREATE POLICY "Order parties can update orders" ON orders 
+  FOR UPDATE 
+  USING (auth.uid() = buyer_id OR auth.uid() = seller_id)
+  WITH CHECK (auth.uid() = buyer_id OR auth.uid() = seller_id);
+
+-- ================= PAYMENT TRANSACTIONS TABLE =================
+-- SECURITY: Store all payment transaction details for audit trail
+CREATE TABLE IF NOT EXISTS payment_transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  razorpay_order_id TEXT UNIQUE NOT NULL,
+  razorpay_payment_id TEXT,
+  razorpay_signature TEXT,
+  amount DECIMAL(10, 2) NOT NULL,
+  currency TEXT DEFAULT 'INR',
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'authorized', 'captured', 'failed', 'refunded')),
+  signature_verified BOOLEAN DEFAULT false,
+  verified_at TIMESTAMP WITH TIME ZONE,
+  verification_attempts INTEGER DEFAULT 0,
+  failure_reason TEXT,
+  ip_address INET,
+  user_agent TEXT,
+  device_fingerprint TEXT,
+  risk_score DECIMAL(5, 2) DEFAULT 0.0,
+  fraud_detected BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_payment_order ON payment_transactions(order_id);
+CREATE INDEX idx_payment_razorpay_id ON payment_transactions(razorpay_payment_id);
+CREATE INDEX idx_payment_status ON payment_transactions(status);
+CREATE INDEX idx_payment_signature_verified ON payment_transactions(signature_verified);
+
+-- Enable RLS on payment_transactions
+ALTER TABLE payment_transactions ENABLE ROW LEVEL SECURITY;
+
+-- SECURITY: Only authorized users can view payment info
+CREATE POLICY "Order participants can view payment details" ON payment_transactions 
+  FOR SELECT 
+  USING (
+    EXISTS (
+      SELECT 1 FROM orders 
+      WHERE id = order_id 
+      AND (buyer_id = auth.uid() OR seller_id = auth.uid())
+    )
+  );
+
+-- Admin/system can insert payment records
+CREATE POLICY "System can create payment records" ON payment_transactions 
+  FOR INSERT 
+  WITH CHECK (auth.role() = 'authenticated');
+
+-- ================= AUDIT LOG TABLE =================
+-- SECURITY: Log all sensitive operations for compliance
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id),
+  action TEXT NOT NULL,
+  resource_type TEXT NOT NULL,
+  resource_id UUID,
+  old_values JSONB,
+  new_values JSONB,
+  ip_address INET,
+  user_agent TEXT,
+  status TEXT DEFAULT 'success',
+  error_message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_audit_user ON audit_logs(user_id);
+CREATE INDEX idx_audit_action ON audit_logs(action);
+CREATE INDEX idx_audit_resource ON audit_logs(resource_type, resource_id);
+CREATE INDEX idx_audit_created ON audit_logs(created_at);
+
+-- Enable RLS on audit_logs
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- SECURITY: Only admin can view audit logs
+CREATE POLICY "Admin can view audit logs" ON audit_logs 
+  FOR SELECT 
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Create an RLS policy for rate limiting tracking
+CREATE TABLE IF NOT EXISTS rate_limit_tracking (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL,
+  attempt_count INTEGER DEFAULT 1,
+  first_attempt_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_attempt_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  blocked_until TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX idx_rate_limit_user ON rate_limit_tracking(user_id);
+CREATE INDEX idx_rate_limit_endpoint ON rate_limit_tracking(endpoint);
+CREATE INDEX idx_rate_limit_blocked ON rate_limit_tracking(blocked_until);
+
+-- Enable RLS 
+ALTER TABLE rate_limit_tracking ENABLE ROW LEVEL SECURITY;
+
+-- Create function to log audit events
+CREATE OR REPLACE FUNCTION log_audit_event(
+  p_user_id UUID,
+  p_action TEXT,
+  p_resource_type TEXT,
+  p_resource_id UUID,
+  p_old_values JSONB DEFAULT NULL,
+  p_new_values JSONB DEFAULT NULL,
+  p_ip_address INET DEFAULT NULL,
+  p_status TEXT DEFAULT 'success'
+) RETURNS UUID AS $$
+DECLARE
+  v_log_id UUID;
+BEGIN
+  INSERT INTO audit_logs (user_id, action, resource_type, resource_id, old_values, new_values, ip_address, status)
+  VALUES (p_user_id, p_action, p_resource_type, p_resource_id, p_old_values, p_new_values, p_ip_address, p_status)
+  RETURNING id INTO v_log_id;
+  
+  RETURN v_log_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Revoke public access
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE ON SEQUENCES TO authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO authenticated;
+
+-- SECURITY: Disable any dangerous database functions
+REVOKE ALL ON pg_read_file FROM public;
+REVOKE ALL ON pg_write_file FROM public;

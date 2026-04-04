@@ -1,0 +1,75 @@
+// CRITICAL SECURITY FIX: Removed all hardcoded secrets from client code
+// Secrets must ONLY be accessed from secure backend environment
+class AppConfig {
+  // ── SUPABASE (Safe to expose - Anon key has limited permissions via RLS) ──
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://osdfgvujgqcliqyaujhk.supabase.co',
+  );
+  
+  static const String supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZGZndnVqZ3FjbGlxeWF1amhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0MjE3MDAsImV4cCI6MjA4Mjk5NzcwMH0.3A7uAuQZxSBRXwI__GPheQrsNVTkFpDmS4Bj3whkyyY',
+  );
+
+  // ── Razorpay ──────────────────────────────────────────────────────────────
+  /// Public key used in the browser checkout. Safe to expose client-side.
+  static const String razorpayKeyId = String.fromEnvironment(
+    'RAZORPAY_KEY_ID',
+    defaultValue: 'rzp_test_SN9ToEu8MxPPXc',
+  );
+
+  /// SECURITY FIX: Secret key is NEVER included in client code!
+  /// Backend will handle all signature verification using this secret.
+  /// Never commit secret to version control. Use CI/CD environment variables.
+  /// Example: For testing only, provide via: flutter run --dart-define=RAZORPAY_KEY_SECRET=<secret>
+  /// static const String razorpayKeySecret = String.fromEnvironment(
+  ///   'RAZORPAY_KEY_SECRET',
+  ///   defaultValue: '', // Never set a default value for secrets!
+  /// );
+
+  static bool get isTestMode => razorpayKeyId.startsWith('rzp_test_');
+
+  // Environment
+  static const String environment = String.fromEnvironment(
+    'ENVIRONMENT',
+    defaultValue: 'development',
+  );
+
+  static bool get isDevelopment => environment == 'development';
+  static bool get isProduction => environment == 'production';
+  
+  // App Constants
+  static const String appName = 'ReClaim';
+  static const String appVersion = '1.0.0';
+  
+  // AI Model Constants
+  static const String materialDetectionModelPath = 'assets/models/material_detection_model.tflite';
+  static const double defaultConfidenceThreshold = 0.7;
+  static const int maxDetectionsPerImage = 10;
+  
+  // UI Constants
+  static const Duration defaultAnimationDuration = Duration(milliseconds: 300);
+  static const double defaultBorderRadius = 12.0;
+  static const double defaultPadding = 16.0;
+
+  // ── PASSWORD SECURITY CONSTANTS ──
+  const AppConfig._();
+  
+  // Strong password policy
+  static const int passwordMinLength = 12;
+  static const bool passwordRequireUppercase = true;
+  static const bool passwordRequireLowercase = true;
+  static const bool passwordRequireDigits = true;
+  static const bool passwordRequireSpecial = true;
+  
+  // Session security
+  static const Duration sessionTimeout = Duration(minutes: 15);
+  static const Duration tokenRefreshThreshold = Duration(minutes: 5);
+  
+  // Rate limiting
+  static const int maxLoginAttempts = 5;
+  static const int loginLockoutDurationMinutes = 15;
+  static const int maxPaymentAttempts = 3;
+  static const int paymentAttemptWindowMinutes = 1;
+}
