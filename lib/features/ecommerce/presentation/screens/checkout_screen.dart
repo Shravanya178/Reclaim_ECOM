@@ -207,10 +207,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       customerPhone: _phoneCtrl.text,
 
       onSuccess: (paymentId, rOrderId, signature) {
-        // Payment captured — persist order then clear cart and show success
+        // Client callback is not authoritative. Persist as pending verification.
         final items = ref.read(localCartProvider);
         final t = ref.read(localCartTotalProvider);
-        _saveOrderToSupabase(items, t + 49, paymentMethod: 'razorpay', paymentId: paymentId);
+        _saveOrderToSupabase(
+          items,
+          t + 49,
+          paymentMethod: 'razorpay',
+          paymentId: paymentId,
+        );
         ref.read(localCartProvider.notifier).clear();
         if (mounted) setState(() { _placing = false; _placed = true; });
       },
@@ -264,8 +269,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         'tax_amount': 0.0,
         'shipping_amount': 49.0,
         'discount_amount': 0.0,
-        'status': 'confirmed',
-        'payment_status': paymentMethod == 'cod' ? 'pending' : 'completed',
+        'status': paymentMethod == 'cod' ? 'confirmed' : 'pending_payment',
+        'payment_status': paymentMethod == 'cod' ? 'pending' : 'verification_pending',
         'shipping_address_line1': _address1Ctrl.text,
         'shipping_city': _cityCtrl.text,
         'shipping_state': _cityCtrl.text,
@@ -296,9 +301,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           'order_id': orderId,
           'amount': grand,
           'payment_method': 'upi',
-          'payment_status': 'completed',
+          'payment_status': 'verification_pending',
           'transaction_id': paymentId,
-          'completed_at': DateTime.now().toIso8601String(),
+          'gateway_response': {
+            'verification_state': 'pending_server_validation',
+            'captured_at_client': DateTime.now().toIso8601String(),
+          },
         });
       }
     } catch (e) {

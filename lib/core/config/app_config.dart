@@ -20,7 +20,7 @@ class AppConfig {
   /// Never send this to the browser / include it in JS bundles.
   static const String razorpayKeySecret = String.fromEnvironment(
     'RAZORPAY_KEY_SECRET',
-    defaultValue: 'RddSc9p6EP27YJ13LssK1Wf1',
+    defaultValue: '',
   );
 
   static bool get isTestMode => razorpayKeyId.startsWith('rzp_test_');
