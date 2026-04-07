@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
@@ -48,6 +49,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
   late TabController _tab;
   String _materialSearch = '';
   String _userSearch = '';
+  FlowPlaybook? _playbook;
 
   static const _stats = [
     _Stat('Total Materials', '3,420', '+12%', Icons.inventory_2_outlined, Color(0xFF2D6A4F)),
@@ -89,6 +91,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
     super.initState();
     _tab = TabController(length: 5, vsync: this)
       ..addListener(() => setState(() {}));
+    _loadAdminPlaybook();
+  }
+
+  Future<void> _loadAdminPlaybook() async {
+    await ErpCrmIntelligenceService.instance
+        .recordAdminErpAction(action: 'admin_dashboard_opened');
+    final playbook = await ErpCrmIntelligenceService.instance
+        .getFlowPlaybook(role: 'admin');
+    if (!mounted) return;
+    setState(() => _playbook = playbook);
   }
 
   @override
@@ -109,6 +121,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
             icon: const Icon(Icons.auto_graph_outlined),
             onPressed: () => context.go('/business-engine?role=admin'),
           ),
+          IconButton(
+            icon: const Icon(Icons.timeline_outlined),
+            onPressed: () => context.go('/flow-timeline'),
+          ),
           IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
           const CircleAvatar(radius: 16, backgroundColor: Colors.white24,
             child: Icon(Icons.person, color: Colors.white, size: 18)),
@@ -120,7 +136,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
           _buildTabBar(isMobile),
           Expanded(
             child: TabBarView(controller: _tab, children: [
-              _OverviewTab(stats: _stats, materials: _materials, zones: _zones, isMobile: isMobile),
+              _OverviewTab(
+                stats: _stats,
+                materials: _materials,
+                zones: _zones,
+                isMobile: isMobile,
+                playbook: _playbook,
+              ),
               _MaterialsTab(materials: _materials, search: _materialSearch,
                 onSearch: (v) => setState(() => _materialSearch = v)),
               _ZonesTab(zones: _zones, isMobile: isMobile),
@@ -165,7 +187,8 @@ class _OverviewTab extends StatelessWidget {
   final List<_Material> materials;
   final List<_Zone> zones;
   final bool isMobile;
-  const _OverviewTab({required this.stats, required this.materials, required this.zones, required this.isMobile});
+  final FlowPlaybook? playbook;
+  const _OverviewTab({required this.stats, required this.materials, required this.zones, required this.isMobile, required this.playbook});
 
   @override
   Widget build(BuildContext context) {
@@ -205,6 +228,53 @@ class _OverviewTab extends StatelessWidget {
               childAspectRatio: isMobile ? 1.4 : 1.6,
               children: stats.map((s) => _StatCard(s)).toList(),
             ),
+            if (playbook != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FCF9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFD4E6DA)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Execution Priority: ${playbook!.erpPriorityModule}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Text('CRM: ${playbook!.crmStage}  |  SCM: ${playbook!.scmMode}', style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                    const SizedBox(height: 4),
+                    Text(playbook!.competitorEdge, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            await ErpCrmIntelligenceService.instance
+                                .recordAdminScmAction(action: 'admin_open_scm_control');
+                            if (context.mounted) context.go('/scm-dashboard');
+                          },
+                          icon: const Icon(Icons.hub_outlined, size: 16),
+                          label: const Text('Run SCM Control'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            await ErpCrmIntelligenceService.instance
+                                .recordAdminErpAction(action: 'admin_open_erp_module');
+                            if (context.mounted) context.go('/ecom-admin');
+                          },
+                          icon: const Icon(Icons.apartment_outlined, size: 16),
+                          label: const Text('Run ERP Module'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 28),
             // Two-col content
             if (isMobile) ...[

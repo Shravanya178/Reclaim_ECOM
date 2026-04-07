@@ -177,7 +177,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   void _onNext(BuildContext context) async {
     if (_step < 2) {
-      if (_formKey.currentState!.validate()) setState(() => _step++);
+      if (_formKey.currentState!.validate()) {
+        if (_step == 0) {
+          await ErpCrmIntelligenceService.instance.recordCheckoutStarted();
+        }
+        setState(() => _step++);
+      }
       return;
     }
 
@@ -189,6 +194,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final items = ref.read(localCartProvider);
       final total = ref.read(localCartTotalProvider);
       await _saveOrderToSupabase(items, total + 49, paymentMethod: 'cod');
+      await ErpCrmIntelligenceService.instance.recordOrderPlaced(
+        amountInr: total + 49,
+        paymentMethod: 'cod',
+      );
       ref.read(localCartProvider.notifier).clear();
       if (mounted) setState(() { _placing = false; _placed = true; });
       return;
@@ -216,6 +225,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           t + 49,
           paymentMethod: 'razorpay',
           paymentId: paymentId,
+        );
+        ErpCrmIntelligenceService.instance.recordOrderPlaced(
+          amountInr: t + 49,
+          paymentMethod: 'razorpay',
         );
         ref.read(localCartProvider.notifier).clear();
         if (mounted) setState(() { _placing = false; _placed = true; });

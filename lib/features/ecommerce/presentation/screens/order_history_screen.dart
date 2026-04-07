@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
@@ -106,6 +107,55 @@ class OrderHistoryScreen extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
           child: Column(children: [
+              FutureBuilder<FlowPlaybook>(
+                future: ErpCrmIntelligenceService.instance.getFlowPlaybook(role: 'customer'),
+                builder: (context, snapshot) {
+                  final p = snapshot.data;
+                  if (p == null) return const SizedBox.shrink();
+                  return Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FCF9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFD4E6DA)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'CRM ${p.crmStage.toUpperCase()} | SCM ${p.scmMode} | ${p.crmNextAction}',
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.primaryDark),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                ErpCrmIntelligenceService.instance.recordRetentionAction('reorder_from_history');
+                                context.go('/shop');
+                              },
+                              icon: const Icon(Icons.repeat, size: 16),
+                              label: const Text('Reorder Essentials'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                ErpCrmIntelligenceService.instance.recordRetentionAction('support_sla_request');
+                                context.go('/notifications');
+                              },
+                              icon: const Icon(Icons.support_agent, size: 16),
+                              label: const Text('Raise Support SLA'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             _statsRow(orders),
             const SizedBox(height: 32),
             if (isLoading)
@@ -237,7 +287,30 @@ class OrderHistoryScreen extends ConsumerWidget {
     }
     return ListView(
       padding: const EdgeInsets.all(16),
-      children: orders.map((o) => _mobileOrderCard(context, o)).toList(),
+      children: [
+        FutureBuilder<FlowPlaybook>(
+          future: ErpCrmIntelligenceService.instance.getFlowPlaybook(role: 'customer'),
+          builder: (context, snapshot) {
+            final p = snapshot.data;
+            if (p == null) return const SizedBox.shrink();
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FCF9),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFD4E6DA)),
+              ),
+              child: Text(
+                'Next: ${p.crmNextAction}',
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+              ),
+            );
+          },
+        ),
+        ...orders.map((o) => _mobileOrderCard(context, o)),
+      ],
     );
   }
 

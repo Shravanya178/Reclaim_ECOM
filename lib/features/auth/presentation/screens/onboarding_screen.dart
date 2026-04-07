@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
@@ -76,10 +77,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   void dispose() { _heroAnim.dispose(); _pageCtrl.dispose(); super.dispose(); }
 
-  void _next() {
+  Future<void> _next() async {
     if (_page < _pages.length - 1) {
       _pageCtrl.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
     } else {
+      await ErpCrmIntelligenceService.instance.recordOnboardingCompleted();
       context.go('/auth');
     }
   }
@@ -100,6 +102,30 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         return ['Microcontroller Kit', 'Relay Module', 'Power Supply'];
       }
       return ['Reusable Components', 'Starter Kit', 'Project Accessories'];
+    }
+
+    List<(String, String)> tutorialLinksFor(String project) {
+      switch (project.toLowerCase()) {
+        case 'electronics':
+          return [
+            ('Arduino Official Tutorials', 'https://docs.arduino.cc/tutorials/'),
+            ('SparkFun Electronics Tutorials', 'https://learn.sparkfun.com/tutorials'),
+          ];
+        case 'hardware':
+          return [
+            ('Raspberry Pi Projects', 'https://projects.raspberrypi.org/en/projects'),
+            ('Adafruit Learn', 'https://learn.adafruit.com/'),
+          ];
+        case 'automation':
+          return [
+            ('ESP32 Getting Started', 'https://randomnerdtutorials.com/getting-started-with-esp32/'),
+            ('Home Assistant Guides', 'https://www.home-assistant.io/getting-started/'),
+          ];
+        default:
+          return [
+            ('Flutter Codelabs', 'https://docs.flutter.dev/codelabs'),
+          ];
+      }
     }
 
     showGeneralDialog(
@@ -192,13 +218,32 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               if (projectType == null) return;
                                 ErpCrmIntelligenceService.instance
                                   .trackRecommendationSelection(projectType ?? 'IoT');
+                              ErpCrmIntelligenceService.instance
+                                  .recordAcquisitionChannel('project_recommendation');
                               final items = recommendationFor(experience ?? '', projectType ?? '');
+                              final links = tutorialLinksFor(projectType ?? '');
                               Navigator.of(ctx).pop();
                               showDialog(
                                 context: context,
                                 builder: (dialogContext) => AlertDialog(
                                   title: const Text('Recommended Components'),
-                                  content: Text(items.join(', ')),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(items.join(', ')),
+                                      const SizedBox(height: 12),
+                                      const Text('Tutorials', style: TextStyle(fontWeight: FontWeight.w700)),
+                                      const SizedBox(height: 6),
+                                      ...links.map((l) => TextButton.icon(
+                                        onPressed: () {
+                                          launchUrl(Uri.parse(l.$2), mode: LaunchMode.platformDefault);
+                                        },
+                                        icon: const Icon(Icons.link, size: 16),
+                                        label: Text(l.$1),
+                                      )),
+                                    ],
+                                  ),
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.pop(dialogContext),

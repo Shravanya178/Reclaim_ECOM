@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
+
 class RequestBoardScreen extends StatefulWidget {
   const RequestBoardScreen({super.key});
 
@@ -172,9 +174,29 @@ class _RequestBoardScreenState extends State<RequestBoardScreen> with SingleTick
                   SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: OutlinedButton(onPressed: () {}, child: const Text('View Details'))),
+                      Expanded(child: OutlinedButton(onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Request ${request.title} viewed by admin.')),
+                        );
+                      }, child: const Text('View Details'))),
                       SizedBox(width: 8),
-                      Expanded(child: ElevatedButton(onPressed: () {}, child: const Text('Offer Material'))),
+                      Expanded(child: ElevatedButton(onPressed: () async {
+                        final idx = _requests.indexWhere((r) => r.id == request.id);
+                        if (idx < 0) return;
+                        setState(() {
+                          _requests[idx] = _requests[idx].copyWith(
+                            status: RequestStatus.inProgress,
+                            matchedPercentage: 60,
+                          );
+                        });
+                        await ErpCrmIntelligenceService.instance.recordAdminScmAction(
+                          action: 'request_matched_offer_material',
+                        );
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Material offer sent. Request moved to In Progress.')),
+                        );
+                      }, child: const Text('Offer Material'))),
                     ],
                   ),
                 ],
@@ -286,4 +308,22 @@ class MaterialRequest {
   final int? matchedPercentage;
 
   MaterialRequest({required this.id, required this.title, required this.materialType, required this.quantity, required this.requester, required this.project, required this.deadline, required this.urgency, required this.status, this.matchedPercentage});
+
+  MaterialRequest copyWith({
+    RequestStatus? status,
+    int? matchedPercentage,
+  }) {
+    return MaterialRequest(
+      id: id,
+      title: title,
+      materialType: materialType,
+      quantity: quantity,
+      requester: requester,
+      project: project,
+      deadline: deadline,
+      urgency: urgency,
+      status: status ?? this.status,
+      matchedPercentage: matchedPercentage ?? this.matchedPercentage,
+    );
+  }
 }

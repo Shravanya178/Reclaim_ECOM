@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
@@ -80,6 +81,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
         constraints: BoxConstraints(maxWidth: AppTheme.contentMaxWidth(w)),
         child: Padding(padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40), child: Column(children: [
           _statsGrid(),
+          const SizedBox(height: 16),
+          _revenueBreakdownCard(),
           const SizedBox(height: 40),
           // Tabs
           Container(
@@ -126,6 +129,46 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
       Text(s.$2, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
     ]),
   ))).toList());
+
+  Widget _revenueBreakdownCard() {
+    return FutureBuilder<Map<String, double>>(
+      future: ErpCrmIntelligenceService.instance.getRevenueModelSnapshot(),
+      builder: (context, snapshot) {
+        final r = snapshot.data;
+        if (r == null) return const SizedBox.shrink();
+
+        final gross = r['gross_value'] ?? 0;
+        final platform = r['platform_earnings'] ?? 0;
+        final service = r['service_earnings'] ?? 0;
+        final fulfillment = r['fulfillment_earnings'] ?? 0;
+        final net = r['net_earnings'] ?? 0;
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5EFE8)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('How We Actually Earn', style: TextStyle(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Text('Gross Order Value: Rs.${gross.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text('Platform Commission (8%): Rs.${platform.toStringAsFixed(0)}', style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+              Text('Service Fee (2%): Rs.${service.toStringAsFixed(0)}', style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+              Text('Fulfillment Margin (~40% of delivery): Rs.${fulfillment.toStringAsFixed(0)}', style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+              const SizedBox(height: 6),
+              Text('Net Platform Earnings: Rs.${net.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primaryDark)),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Widget _ordersTable() => Padding(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     // Table header

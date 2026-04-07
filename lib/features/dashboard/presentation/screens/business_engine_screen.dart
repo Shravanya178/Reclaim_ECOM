@@ -27,6 +27,7 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
 
   String _roleLens = 'customer';
   String _crmStage = 'selection';
+  String _crmComponent = 'lead_management';
   double _leadVolume = 600;
   double _acquisitionRate = 55;
   double _conversionRate = 34;
@@ -34,6 +35,7 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
   double _loyaltyRate = 38;
 
   String _demandPattern = 'predictable';
+  String _scmMode = 'hybrid';
   double _stockHealth = 68;
   double _leadTimeDays = 4;
 
@@ -66,6 +68,7 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
     'CRM',
     'SCM',
     'Revenue',
+    'ERP Modules',
     'Competitors',
     'Projects',
   ];
@@ -107,6 +110,57 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
       'customer': 'Points, badges, and benefits reward recurring sustainable behavior.',
       'admin': 'Loyalty rules are tuned to maximize repeat activity and advocacy.',
     },
+  };
+
+  static const Map<String, String> _crmComponents = {
+    'lead_management': 'Lead Management',
+    'opportunity_pipeline': 'Opportunity Pipeline',
+    'campaign_automation': 'Campaign Automation',
+    'customer_support': 'Customer Support & SLA',
+    'loyalty_rewards': 'Loyalty & Rewards',
+  };
+
+  static const Map<String, Map<String, String>> _crmComponentGuidance = {
+    'lead_management': {
+      'customer': 'Capture intent from onboarding, discovery, and requests so users are not lost after first visit.',
+      'admin': 'Track source-wise leads (onboarding/shop/requests), assign owner, and enforce first-response SLA.',
+    },
+    'opportunity_pipeline': {
+      'customer': 'Show transparent request-to-order progression so users know what is pending and why.',
+      'admin': 'Move opportunities through qualification, proposal, and closure with stage-wise conversion targets.',
+    },
+    'campaign_automation': {
+      'customer': 'Receive relevant nudges (low stock alerts, project recommendations, repeat reminders).',
+      'admin': 'Run segmentation-based campaigns using role, campus, order history, and material category behavior.',
+    },
+    'customer_support': {
+      'customer': 'Provide visible ticket status and predictable turn-around for requests and delivery issues.',
+      'admin': 'Track SLA breach risk and route unresolved issues to the right owner before escalation.',
+    },
+    'loyalty_rewards': {
+      'customer': 'Tie repeat contribution to points, benefits, and sustainability milestones.',
+      'admin': 'Measure retention uplift from loyalty actions and optimize high-impact rewards.',
+    },
+  };
+
+  static const Map<String, String> _crmStageExitCriteria = {
+    'selection': 'User profile complete + first intent captured (viewed product, request, or lifecycle page).',
+    'acquisition': 'First meaningful action done (request created, product added to cart, or onboarding completed).',
+    'conversion': 'First transaction complete (order placed) and payment confirmation logged.',
+    'retention': 'At least one repeat interaction in 30 days with resolved support path.',
+    'loyalty': 'Repeat purchase pattern + rewards utilization + advocacy action (share/referral/review).',
+  };
+
+  static const Map<String, String> _scmModeLabel = {
+    'push': 'Push: forecast-driven replenishment',
+    'pull': 'Pull: demand-triggered replenishment',
+    'hybrid': 'Hybrid: push base + pull buffer',
+  };
+
+  static const Map<String, String> _scmModeGuide = {
+    'push': 'Use push when demand is stable and lead time is predictable. Lock weekly replenishment cycles.',
+    'pull': 'Use pull when demand volatility is high or stock health is low. Trigger replenishment from real usage signals.',
+    'hybrid': 'Use hybrid when baseline demand exists with periodic spikes. Keep a base plan and dynamic safety buffer.',
   };
 
   static const Map<String, String> _competitorTitle = {
@@ -276,7 +330,7 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
           ),
           SizedBox(height: 6),
           Text(
-            'Explainable implementation of CRM, SCM, Revenue and competitor differentiation.',
+            'Operational CRM lifecycle, SCM push/pull control, ERP modules, and revenue explainability.',
             style: TextStyle(color: Colors.white70, fontSize: 14),
           ),
         ],
@@ -354,6 +408,7 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
           _buildCrmTab(),
           _buildScmTab(),
           _buildRevenueTab(),
+          _buildErpTab(),
           _buildCompetitorTab(),
           _buildProjectsTab(),
         ],
@@ -368,8 +423,8 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
     final loyal = (retained * (_loyaltyRate / 100)).round();
 
     return _panel(
-      title: 'CRM Stage Simulator',
-      subtitle: 'Adjust funnel parameters to see stage outcomes and role-specific implementation actions. ${_liveStatusText()}',
+      title: 'CRM Lifecycle Tracker',
+      subtitle: 'Track lifecycle stages, core CRM components, and stage exit criteria for implementation readiness. ${_liveStatusText()}',
       child: Column(
         children: [
           Wrap(
@@ -383,6 +438,13 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
                 labelMap: _crmStageLabel,
                 onChanged: (v) => setState(() => _crmStage = v ?? 'selection'),
               ),
+              _dropdownCard(
+                label: 'CRM Component',
+                value: _crmComponent,
+                options: _crmComponents.keys.toList(),
+                labelMap: _crmComponents,
+                onChanged: (v) => setState(() => _crmComponent = v ?? 'lead_management'),
+              ),
               _sliderCard('Lead Volume', _leadVolume, 100, 2000, (v) => setState(() => _leadVolume = v), isInt: true),
               _sliderCard('Acquisition %', _acquisitionRate, 5, 95, (v) => setState(() => _acquisitionRate = v)),
               _sliderCard('Conversion %', _conversionRate, 5, 90, (v) => setState(() => _conversionRate = v)),
@@ -392,15 +454,27 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
           ),
           const SizedBox(height: 16),
           _statsGrid([
-            _tileStat('Leads', '$acquired / ${_leadVolume.round()}'),
+            _tileStat('Captured Leads', '$acquired / ${_leadVolume.round()}'),
             _tileStat('Converted', '$converted'),
             _tileStat('Retained', '$retained'),
-            _tileStat('Loyal', '$loyal'),
+            _tileStat('Loyal Customers', '$loyal'),
           ]),
           const SizedBox(height: 12),
           _actionCard(
             title: _crmStageLabel[_crmStage]!,
             content: _crmActions[_crmStage]![_roleLens]!,
+          ),
+          _actionCard(
+            title: '${_crmComponents[_crmComponent]}: What to track now',
+            content: _crmComponentGuidance[_crmComponent]![_roleLens]!,
+          ),
+          _actionCard(
+            title: 'Stage Exit Criteria',
+            content: _crmStageExitCriteria[_crmStage]!,
+          ),
+          _actionCard(
+            title: 'Implementation Shortcuts',
+            content: 'Lifecycle tracking: /lifecycle  •  Opportunities & requests: /requests  •  Orders and conversion quality: /orders  •  CRM alerts: /notifications',
           ),
         ],
       ),
@@ -410,16 +484,24 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
   Widget _buildScmTab() {
     final route = _recommendedScmRoute();
     final reorderQty = ((100 - _stockHealth) * 1.8 + _leadTimeDays * 5).round();
+    final stockoutRisk = _clampDouble((100 - _stockHealth) + (_leadTimeDays * 2.2), 0, 100);
 
     return _panel(
-      title: 'SCM Push/Pull Planner',
-      subtitle: 'Decision logic runs from demand pattern, stock health, and lead time. ${_liveStatusText()}',
+      title: 'SCM Push/Pull Control Tower',
+      subtitle: 'Select operating model, compare recommended route, and execute stage-by-stage SCM operations. ${_liveStatusText()}',
       child: Column(
         children: [
           Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
+              _dropdownCard(
+                label: 'Operating Mode',
+                value: _scmMode,
+                options: const ['push', 'pull', 'hybrid'],
+                labelMap: _scmModeLabel,
+                onChanged: (v) => setState(() => _scmMode = v ?? 'hybrid'),
+              ),
               _dropdownCard(
                 label: 'Demand Pattern',
                 value: _demandPattern,
@@ -438,14 +520,24 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
           const SizedBox(height: 16),
           _statsGrid([
             _tileStat('Recommended Route', route),
+            _tileStat('Selected Mode', _scmMode.toUpperCase()),
             _tileStat('Reorder Quantity', '$reorderQty units'),
+            _tileStat('Stockout Risk', '${stockoutRisk.toStringAsFixed(1)}%'),
             _tileStat('Admin Priority', route == 'Pull' ? 'Dynamic allocation' : 'Planned replenishment'),
-            _tileStat('Customer View', 'Live stage tracking'),
+            _tileStat('Execution Signal', _scmMode == 'push' ? 'Forecast batches' : _scmMode == 'pull' ? 'Consumption triggers' : 'Forecast + trigger'),
           ]),
           const SizedBox(height: 12),
           _actionCard(
+            title: 'Operating Guide',
+            content: _scmModeGuide[_scmMode]!,
+          ),
+          _actionCard(
             title: 'Shared SCM Execution Stages',
             content: scmSharedFlow.join('  ->  '),
+          ),
+          _actionCard(
+            title: 'Execution Routes in ReClaim',
+            content: 'SCM dashboard: /scm-dashboard  •  Inventory visibility: /lab-dashboard/inventory  •  Demand signals: /requests  •  Fulfillment output: /orders',
           ),
         ],
       ),
@@ -483,6 +575,94 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
           _actionCard(
             title: 'Explainability',
             content: 'Revenue is modeled as Orders x AOV x Fee%. Repeat contribution is estimated from repeat-rate share of platform revenue.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErpTab() {
+    final serviceLevel = _clampDouble(_stockHealth - (_leadTimeDays * 1.8), 40, 99.9);
+    final orderToCashDays = _clampDouble(_leadTimeDays + 1.5, 1, 20);
+    final repeatHealth = _clampDouble(_repeatRate, 1, 90);
+
+    final modules = [
+      _ErpModule(
+        name: 'Procurement & Vendor Planning',
+        objective: 'Track sourcing reliability, inbound cycle time, and replenishment quality.',
+        kpi: 'Lead Time: ${_leadTimeDays.toStringAsFixed(1)} days',
+        route: '/scm-dashboard',
+      ),
+      _ErpModule(
+        name: 'Inventory & Warehouse',
+        objective: 'Maintain stock health, monitor low-stock pressure, and reduce stockouts.',
+        kpi: 'Service Level: ${serviceLevel.toStringAsFixed(1)}%',
+        route: '/lab-dashboard/inventory',
+      ),
+      _ErpModule(
+        name: 'Order Management (O2C)',
+        objective: 'Track request-to-order-to-payment conversion and closure speed.',
+        kpi: 'Order-to-Cash: ${orderToCashDays.toStringAsFixed(1)} days',
+        route: '/orders',
+      ),
+      _ErpModule(
+        name: 'CRM & Customer Success',
+        objective: 'Run lifecycle campaigns, support SLAs, and loyalty outcomes.',
+        kpi: 'Repeat Health: ${repeatHealth.toStringAsFixed(1)}%',
+        route: '/notifications',
+      ),
+      _ErpModule(
+        name: 'Finance & Revenue Control',
+        objective: 'Track GMV, platform revenue, and repeat contribution across cohorts.',
+        kpi: 'Use Revenue tab KPIs as monthly close baseline',
+        route: '/ecom-admin',
+      ),
+    ];
+
+    return _panel(
+      title: 'ERP Modules Tracker',
+      subtitle: 'Map core ERP modules to live routes in your app so CRM, SCM, and finance execution stays connected.',
+      child: Column(
+        children: [
+          _statsGrid([
+            _tileStat('Modules Enabled', '${modules.length}'),
+            _tileStat('Primary Focus', _roleLens == 'admin' ? 'Operational control' : 'Experience transparency'),
+            _tileStat('CRM Stage', _crmStageLabel[_crmStage] ?? 'Selection'),
+            _tileStat('SCM Strategy', _scmModeLabel[_scmMode] ?? 'Hybrid'),
+          ]),
+          const SizedBox(height: 12),
+          ...modules.map(_erpModuleCard),
+        ],
+      ),
+    );
+  }
+
+  Widget _erpModuleCard(_ErpModule module) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FCF9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE5EFE8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(module.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 5),
+          Text(module.objective, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.45)),
+          const SizedBox(height: 8),
+          Text(module.kpi, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.primaryDark)),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => context.go(module.route),
+              icon: const Icon(Icons.open_in_new, size: 16),
+              label: const Text('Open Module'),
+            ),
           ),
         ],
       ),
@@ -968,6 +1148,20 @@ class _TutorialLink {
   final String url;
 
   const _TutorialLink(this.label, this.url);
+}
+
+class _ErpModule {
+  final String name;
+  final String objective;
+  final String kpi;
+  final String route;
+
+  const _ErpModule({
+    required this.name,
+    required this.objective,
+    required this.kpi,
+    required this.route,
+  });
 }
 
 class _EmptyHint extends StatelessWidget {

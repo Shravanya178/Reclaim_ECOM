@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
@@ -181,13 +182,16 @@ class StudentDashboardScreen extends ConsumerWidget {
 
   Widget _quickActions(BuildContext context) {
     final actions = [
-      ('Donate Material', 'Upload surplus materials to the network', Icons.volunteer_activism, AppTheme.primaryGreen, '/capture'),
-      ('Browse Shop', 'Find parts and materials you need', Icons.store_outlined, Color(0xFF3182CE), '/shop'),
-      ('Make Request', 'Request specific materials from labs', Icons.pending_actions, Color(0xFFD69E2E), '/requests'),
-      ('My Orders', 'Track and manage your purchases', Icons.receipt_long_outlined, Color(0xFF805AD5), '/orders'),
+      ('Donate Material', 'Upload surplus materials to the network', Icons.volunteer_activism, AppTheme.primaryGreen, '/capture', 'donation_intent'),
+      ('Browse Shop', 'Find parts and materials you need', Icons.store_outlined, Color(0xFF3182CE), '/shop', 'shop_discovery'),
+      ('Make Request', 'Request specific materials from labs', Icons.pending_actions, Color(0xFFD69E2E), '/requests', 'request_intent'),
+      ('My Orders', 'Track and manage your purchases', Icons.receipt_long_outlined, Color(0xFF805AD5), '/orders', 'order_followup'),
     ];
     return Row(children: actions.map((a) => Expanded(child: GestureDetector(
-      onTap: () => context.go(a.$5),
+      onTap: () {
+        ErpCrmIntelligenceService.instance.recordAcquisitionChannel(a.$6);
+        context.go(a.$5);
+      },
       child: Container(
         margin: const EdgeInsets.only(right: 16),
         padding: const EdgeInsets.all(20),

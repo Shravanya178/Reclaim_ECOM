@@ -29,6 +29,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _injectContextAwareNotifications() async {
+    final playbook = await ErpCrmIntelligenceService.instance
+      .getFlowPlaybook(role: 'customer');
+    final campaigns = await ErpCrmIntelligenceService.instance
+      .getReactivationCampaigns(refresh: true);
     final messages = await ErpCrmIntelligenceService.instance
         .getContextAwareMessages(lowStock: true);
     if (!mounted || messages.isEmpty) return;
@@ -49,6 +53,53 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     setState(() {
       _notifications.insertAll(0, dynamicItems);
+      _notifications.insertAll(
+        0,
+        campaigns.map((c) => NotificationItem(
+          id: 'react-${c.id}',
+          type: NotificationType.reminder,
+          title: c.title,
+          message: c.message,
+          timestamp: now,
+          isRead: false,
+          deepLink: c.route,
+          campaignId: c.id,
+        )),
+      );
+      _notifications.insertAll(0, [
+        NotificationItem(
+          id: 'crm-stage-${now.millisecondsSinceEpoch}',
+          type: NotificationType.reminder,
+          title: 'CRM Stage: ${playbook.crmStage.toUpperCase()}',
+          message: playbook.crmNextAction,
+          timestamp: now,
+          isRead: false,
+        ),
+        NotificationItem(
+          id: 'scm-mode-${now.millisecondsSinceEpoch}',
+          type: NotificationType.opportunity,
+          title: 'SCM Mode: ${playbook.scmMode}',
+          message: playbook.scmNextAction,
+          timestamp: now,
+          isRead: false,
+        ),
+        NotificationItem(
+          id: 'erp-priority-${now.millisecondsSinceEpoch}',
+          type: NotificationType.match,
+          title: 'ERP Priority',
+          message: playbook.erpPriorityModule,
+          timestamp: now,
+          isRead: false,
+        ),
+        NotificationItem(
+          id: 'revenue-signal-${now.millisecondsSinceEpoch}',
+          type: NotificationType.impact,
+          title: 'Revenue Signal',
+          message: playbook.revenueInsight,
+          timestamp: now,
+          isRead: false,
+        ),
+      ]);
     });
   }
 
@@ -65,6 +116,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => context.pop()),
         actions: [
+          IconButton(
+            tooltip: 'Open flow timeline',
+            onPressed: () => context.go('/flow-timeline'),
+            icon: const Icon(Icons.timeline_outlined, color: Colors.white),
+          ),
           if (unreadCount > 0)
             TextButton(onPressed: _markAllAsRead, child: const Text('Mark all read', style: TextStyle(color: Colors.white))),
           PopupMenuButton<String>(
@@ -220,11 +276,40 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   bool _isSameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 
-  void _handleNotificationTap(NotificationItem notification) {
+  Future<void> _handleNotificationTap(NotificationItem notification) async {
     setState(() {
       final index = _notifications.indexOf(notification);
       _notifications[index] = notification.copyWith(isRead: true);
     });
+
+    if (notification.campaignId != null && notification.deepLink != null) {
+      await ErpCrmIntelligenceService.instance.recordCampaignOpened(notification.campaignId!);
+      await ErpCrmIntelligenceService.instance.recordCampaignConverted(
+        notification.campaignId!,
+        'notification_click_through',
+      );
+      if (!mounted) return;
+      context.go(notification.deepLink!);
+      return;
+    }
+
+    final title = notification.title.toLowerCase();
+    if (title.contains('crm stage')) {
+      context.go('/requests');
+      return;
+    }
+    if (title.contains('scm mode')) {
+      context.go('/scm-dashboard');
+      return;
+    }
+    if (title.contains('erp priority')) {
+      context.go('/ecom-admin');
+      return;
+    }
+    if (title.contains('revenue signal')) {
+      context.go('/orders');
+      return;
+    }
   }
 
   void _markAllAsRead() {
@@ -249,10 +334,12 @@ class NotificationItem {
   final String message;
   final DateTime timestamp;
   final bool isRead;
+  final String? deepLink;
+  final String? campaignId;
 
-  NotificationItem({required this.id, required this.type, required this.title, required this.message, required this.timestamp, required this.isRead});
+  NotificationItem({required this.id, required this.type, required this.title, required this.message, required this.timestamp, required this.isRead, this.deepLink, this.campaignId});
 
-  NotificationItem copyWith({String? id, NotificationType? type, String? title, String? message, DateTime? timestamp, bool? isRead}) {
-    return NotificationItem(id: id ?? this.id, type: type ?? this.type, title: title ?? this.title, message: message ?? this.message, timestamp: timestamp ?? this.timestamp, isRead: isRead ?? this.isRead);
+  NotificationItem copyWith({String? id, NotificationType? type, String? title, String? message, DateTime? timestamp, bool? isRead, String? deepLink, String? campaignId}) {
+    return NotificationItem(id: id ?? this.id, type: type ?? this.type, title: title ?? this.title, message: message ?? this.message, timestamp: timestamp ?? this.timestamp, isRead: isRead ?? this.isRead, deepLink: deepLink ?? this.deepLink, campaignId: campaignId ?? this.campaignId);
   }
 }

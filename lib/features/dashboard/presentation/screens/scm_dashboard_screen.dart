@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
+import 'package:reclaim/core/services/scm_automation_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
@@ -16,8 +17,15 @@ import 'package:reclaim/core/widgets/web_navbar.dart';
 // 3. Supply vs Demand Gap Table
 // ─────────────────────────────────────────────────────────────────────────────
 
-class ScmDashboardScreen extends ConsumerWidget {
+class ScmDashboardScreen extends ConsumerStatefulWidget {
   const ScmDashboardScreen({super.key});
+
+  @override
+  ConsumerState<ScmDashboardScreen> createState() => _ScmDashboardScreenState();
+}
+
+class _ScmDashboardScreenState extends ConsumerState<ScmDashboardScreen> {
+  int _automationReload = 0;
 
   // ── DEMO DATA ──────────────────────────────────────────────────────────────
 
@@ -202,6 +210,8 @@ class ScmDashboardScreen extends ConsumerWidget {
                 _healthStatsRow(),
                 const SizedBox(height: 16),
                 _operationalSnapshotCard(),
+                const SizedBox(height: 16),
+                _automationPanel(),
                 const SizedBox(height: 20),
                 _lowStockList(),
                 const SizedBox(height: 44),
@@ -303,6 +313,8 @@ class ScmDashboardScreen extends ConsumerWidget {
 
             const SizedBox(height: 12),
             _operationalSnapshotCard(),
+            const SizedBox(height: 12),
+            _automationPanel(),
 
             const SizedBox(height: 24),
             const Text('Low Stock Alert',
@@ -379,6 +391,129 @@ class ScmDashboardScreen extends ConsumerWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
+    );
+  }
+
+  Widget _automationPanel() {
+    return FutureBuilder<List<ScmAutomationTask>>(
+      key: ValueKey(_automationReload),
+      future: ScmAutomationService.instance.scanAndGetTasks(),
+      builder: (context, snapshot) {
+        final tasks = snapshot.data ?? const <ScmAutomationTask>[];
+        if (tasks.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FCF9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFD4E6DA)),
+            ),
+            child: const Text(
+              'Auto Trigger: No low-stock procurement tasks pending.',
+              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+            ),
+          );
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FCF9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFD4E6DA)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await ScmAutomationService.instance.runPushPlan();
+                      if (!mounted) return;
+                      setState(() => _automationReload++);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Push plan executed: forecast-based replenishment applied.')),
+                      );
+                    },
+                    icon: const Icon(Icons.trending_up, size: 16),
+                    label: const Text('Run Push Plan'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await ScmAutomationService.instance.runPullReplenishment();
+                      if (!mounted) return;
+                      setState(() => _automationReload++);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Pull replenishment executed: demand-trigger mode active.')),
+                      );
+                    },
+                    icon: const Icon(Icons.sync_alt, size: 16),
+                    label: const Text('Run Pull Replenishment'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Auto Trigger Active: ${tasks.length} low-stock tasks generated',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              ...tasks.take(3).map((task) {
+                final sevColor = task.severity == 'critical'
+                    ? const Color(0xFFE53E3E)
+                    : const Color(0xFFD69E2E);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE5EFE8)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: sevColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          task.severity.toUpperCase(),
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: sevColor),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '${task.materialName}: stock ${task.currentStock}, restock ${task.recommendedRestockQty}',
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          await ScmAutomationService.instance.executeTask(task);
+                          if (!mounted) return;
+                          setState(() => _automationReload++);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Auto restock executed for ${task.materialName}.')),
+                          );
+                        },
+                        child: const Text('Execute'),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 

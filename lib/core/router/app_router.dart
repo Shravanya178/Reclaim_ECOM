@@ -15,6 +15,7 @@ import 'package:reclaim/features/dashboard/presentation/screens/lab_dashboard_sc
 import 'package:reclaim/features/dashboard/presentation/screens/admin_dashboard_screen.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/scm_dashboard_screen.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/business_engine_screen.dart';
+import 'package:reclaim/features/dashboard/presentation/screens/flow_timeline_screen.dart';
 
 // Student feature screens
 import 'package:reclaim/features/discovery/presentation/screens/discovery_map_screen.dart';
@@ -162,6 +163,11 @@ GoRouter appRouter(AppRouterRef ref) {
           final role = state.uri.queryParameters['role'] ?? 'customer';
           return BusinessEngineScreen(initialRole: role);
         },
+      ),
+      GoRoute(
+        path: '/flow-timeline',
+        name: 'flow-timeline',
+        builder: (context, state) => const FlowTimelineScreen(),
       ),
 
       // ── E-Commerce Routes ──────────────────────────────────────────
