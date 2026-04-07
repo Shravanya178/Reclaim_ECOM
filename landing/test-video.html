@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Test - ReClaim</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #0a1a10;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        video {
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            border-radius: 10px;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success { background: #2d6a4f; }
+        .error { background: #d32f2f; }
+    </style>
+</head>
+<body>
+    <h1>🎬 Video Background Test</h1>
+    
+    <div id="status" class="status">
+        Testing video file...
+    </div>
+    
+    <video id="test-video" controls autoplay muted loop>
+        <source src="../assets/videos/26070-357512237_medium.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    
+    <div style="margin-top: 20px;">
+        <h3>Video Information:</h3>
+        <p><strong>Expected Path:</strong> ../assets/videos/26070-357512237_medium.mp4</p>
+        <p><strong>File Status:</strong> <span id="file-status">Checking...</span></p>
+        <p><strong>Video Dimensions:</strong> <span id="dimensions">Loading...</span></p>
+        <p><strong>Duration:</strong> <span id="duration">Loading...</span></p>
+    </div>
+    
+    <div style="margin-top: 20px;">
+        <a href="index.html" style="color: #52B788; text-decoration: none;">
+            ← Back to Landing Page
+        </a>
+    </div>
+
+    <script>
+        const video = document.getElementById('test-video');
+        const status = document.getElementById('status');
+        const fileStatus = document.getElementById('file-status');
+        const dimensions = document.getElementById('dimensions');
+        const duration = document.getElementById('duration');
+        
+        video.addEventListener('loadeddata', function() {
+            status.className = 'status success';
+            status.textContent = '✅ Video loaded successfully!';
+            fileStatus.textContent = 'Found and loaded';
+            dimensions.textContent = `${video.videoWidth} × ${video.videoHeight}`;
+            duration.textContent = `${Math.round(video.duration)} seconds`;
+        });
+        
+        video.addEventListener('error', function(e) {
+            status.className = 'status error';
+            status.textContent = '❌ Video failed to load. Check file path and format.';
+            fileStatus.textContent = 'Not found or invalid format';
+            dimensions.textContent = 'N/A';
+            duration.textContent = 'N/A';
+            console.error('Video error:', e);
+        });
+        
+        video.addEventListener('loadstart', function() {
+            status.textContent = '⏳ Loading video...';
+        });
+    </script>
+</body>
+</html>

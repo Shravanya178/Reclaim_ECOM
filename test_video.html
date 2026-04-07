@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Background Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1B4332;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        #background-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: -2;
+            opacity: 0.7;
+        }
+        
+        .content {
+            position: relative;
+            z-index: 1;
+            padding: 50px;
+            text-align: center;
+            background: rgba(27, 67, 50, 0.7);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+        
+        p {
+            font-size: 1.2rem;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+        }
+        
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background: rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Video Background -->
+    <video id="background-video" autoplay muted loop playsinline>
+        <source src="assets/videos/26070-357512237_medium.mp4" type="video/mp4">
+    </video>
+    
+    <div class="content">
+        <h1>🎬 Video Background Test</h1>
+        <div id="status" class="status">Testing video...</div>
+        <p>This tests the same video background setup used in your Flutter app.</p>
+        <p><strong>Video Path:</strong> assets/videos/26070-357512237_medium.mp4</p>
+    </div>
+
+    <script>
+        const video = document.getElementById('background-video');
+        const status = document.getElementById('status');
+        
+        video.addEventListener('loadeddata', function() {
+            status.innerHTML = '✅ Video loaded successfully! Dimensions: ' + video.videoWidth + 'x' + video.videoHeight;
+            status.style.background = 'rgba(46, 125, 50, 0.7)';
+        });
+        
+        video.addEventListener('error', function(e) {
+            status.innerHTML = '❌ Video failed to load. Check if file exists at: assets/videos/26070-357512237_medium.mp4';
+            status.style.background = 'rgba(211, 47, 47, 0.7)';
+        });
+        
+        video.addEventListener('loadstart', function() {
+            status.innerHTML = '⏳ Loading video...';
+        });
+        
+        // Try to play video (handle autoplay restrictions)
+        video.addEventListener('canplay', function() {
+            video.play().catch(error => {
+                console.warn('Video autoplay failed:', error);
+                status.innerHTML += '<br>⚠️ Autoplay blocked - click to play';
+            });
+        });
+        
+        // Click to play if autoplay fails
+        document.addEventListener('click', function() {
+            if (video.paused) {
+                video.play();
+            }
+        });
+    </script>
+</body>
+</html>

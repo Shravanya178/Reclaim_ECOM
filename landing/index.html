@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ReClaim — Give Materials a Second Life</title>
+
+<!-- Three.js + GSAP + ScrollTrigger -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+<style>
+  :root {
+    --g1: #0a1a10;
+    --g2: #1B4332;
+    --g3: #2D6A4F;
+    --accent: #52B788;
+    --light: #95D5B2;
+    --white: #F0FFF4;
+    --text2: #A8D8BE;
+    --card-bg: rgba(27, 67, 50, 0.45);
+  }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--g1);
+    color: var(--white);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* ── scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--g1); }
+  ::-webkit-scrollbar-thumb { background: var(--g3); border-radius: 3px; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 60px;
+    background: transparent;
+    transition: background .4s, backdrop-filter .4s;
+  }
+  nav.scrolled {
+    background: rgba(10,26,16,.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(82,183,136,.15);
+  }
+  .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .nav-logo svg { width: 36px; height: 36px; }
+  .nav-logo span { font-size: 1.25rem; font-weight: 800; color: var(--white); letter-spacing: -.5px; }
+  .nav-links { display: flex; gap: 36px; }
+  .nav-links a {
+    color: var(--text2); text-decoration: none; font-size: .9rem; font-weight: 500;
+    transition: color .2s;
+  }
+  .nav-links a:hover { color: var(--white); }
+  .nav-cta {
+    background: var(--accent); color: #0a1a10; border: none; border-radius: 10px;
+    padding: 10px 24px; font-weight: 700; font-size: .9rem; cursor: pointer;
+    transition: transform .2s, box-shadow .2s;
+    text-decoration: none;
+  }
+  .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(82,183,136,.4); }
+
+  /* ── HERO ── */
+  #hero {
+    position: relative; width: 100%; height: 100vh;
+    display: flex; align-items: center; overflow: hidden;
+  }
+  #video-background {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: 1;
+    opacity: 0.7;
+  }
+  #video-overlay {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, 
+      rgba(10,26,16,0.8) 0%, 
+      rgba(27,67,50,0.6) 30%, 
+      rgba(45,106,79,0.4) 60%, 
+      rgba(10,26,16,0.8) 100%);
+    z-index: 2;
+  }
+  #three-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 3;
+    opacity: 0.6;
+  }
+  .hero-content {
+    position: relative; z-index: 10;
+    max-width: 680px; padding: 0 60px;
+    opacity: 0; transform: translateY(40px);
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(82,183,136,.12); border: 1px solid rgba(82,183,136,.3);
+    border-radius: 100px; padding: 6px 16px;
+    font-size: .8rem; color: var(--light); font-weight: 600;
+    margin-bottom: 28px;
+  }
+  .hero-badge span { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+  .hero-title {
+    font-size: clamp(2.8rem, 5vw, 5rem);
+    font-weight: 900; line-height: 1.05; letter-spacing: -2px;
+    margin-bottom: 24px;
+  }
+  .hero-title em { font-style: normal; color: var(--accent); }
+  .hero-subtitle {
+    font-size: 1.15rem; color: var(--text2); line-height: 1.7;
+    margin-bottom: 40px; max-width: 520px;
+  }
+  .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #40916C);
+    color: #0a1a10; padding: 15px 36px; border-radius: 12px;
+    font-weight: 800; font-size: 1rem; text-decoration: none;
+    transition: transform .2s, box-shadow .2s;
+    box-shadow: 0 8px 32px rgba(82,183,136,.35);
+  }
+  .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(82,183,136,.5); }
+  .btn-secondary {
+    background: transparent; color: var(--white);
+    padding: 15px 32px; border-radius: 12px;
+    font-weight: 700; font-size: 1rem; text-decoration: none;
+    border: 1px solid rgba(255,255,255,.2);
+    transition: border-color .2s, background .2s;
+  }
+  .btn-secondary:hover { border-color: var(--accent); background: rgba(82,183,136,.08); }
+  .hero-scroll {
+    position: absolute; bottom: 36px; left: 50%;
+    transform: translateX(-50%); z-index: 10;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .hero-scroll span { font-size: .75rem; color: var(--text2); letter-spacing: 2px; text-transform: uppercase; }
+  .scroll-line {
+    width: 1px; height: 50px;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+    animation: scrollAnim 2.2s ease-in-out infinite;
+  }
+  @keyframes scrollAnim { 0%{transform:scaleY(0);transform-origin:top} 50%{transform:scaleY(1);transform-origin:top} 51%{transform:scaleY(1);transform-origin:bottom} 100%{transform:scaleY(0);transform-origin:bottom} }
+
+  /* ── STATS ── */
+  #stats {
+    position: relative; z-index: 10;
+    padding: 80px 60px;
+    background: linear-gradient(180deg, transparent, rgba(27,67,50,.3), transparent);
+  }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 1100px; margin: 0 auto; }
+  .stat-card {
+    background: rgba(27,67,50,0.7);
+    border: 1px solid rgba(82,183,136,.3);
+    border-radius: 20px; padding: 32px 28px;
+    backdrop-filter: blur(16px);
+    text-align: center;
+    transition: transform .3s, box-shadow .3s, border-color .3s;
+  }
+  .stat-card:hover { 
+    transform: translateY(-8px); 
+    box-shadow: 0 25px 70px rgba(82,183,136,.2);
+    border-color: rgba(82,183,136,.6);
+  }
+  .stat-icon { font-size: 2rem; margin-bottom: 12px; }
+  .stat-num { font-size: 2.8rem; font-weight: 900; color: var(--accent); letter-spacing: -1px; line-height: 1; }
+  .stat-label { font-size: .85rem; color: var(--text2); margin-top: 6px; font-weight: 500; }
+
+  /* ── FEATURES ── */
+  #features { padding: 100px 60px; max-width: 1300px; margin: 0 auto; }
+  .section-tag {
+    display: inline-block;
+    background: rgba(82,183,136,.12); border: 1px solid rgba(82,183,136,.25);
+    color: var(--accent); border-radius: 6px;
+    padding: 5px 14px; font-size: .78rem; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 20px;
+  }
+  .section-title {
+    font-size: clamp(2rem, 3.5vw, 3.2rem);
+    font-weight: 900; line-height: 1.1; letter-spacing: -1px;
+    margin-bottom: 14px; max-width: 600px;
+  }
+  .section-sub { color: var(--text2); font-size: 1.05rem; line-height: 1.7; max-width: 540px; margin-bottom: 60px; }
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .feat-card {
+    background: rgba(27,67,50,0.6);
+    border: 1px solid rgba(82,183,136,.25);
+    border-radius: 24px; padding: 36px 30px;
+    backdrop-filter: blur(20px);
+    position: relative; overflow: hidden;
+    cursor: default;
+    transform-style: preserve-3d;
+    transition: box-shadow .3s, transform .3s, border-color .3s;
+  }
+  .feat-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 30% 20%, rgba(82,183,136,.15), transparent 60%);
+    pointer-events: none;
+    transition: opacity .3s;
+  }
+  .feat-card:hover { 
+    box-shadow: 0 30px 80px rgba(82,183,136,.25);
+    border-color: rgba(82,183,136,.5);
+    transform: translateY(-6px);
+  }
+  .feat-card:hover::before { opacity: 1.5; }
+  .feat-icon {
+    width: 54px; height: 54px; border-radius: 14px;
+    background: linear-gradient(135deg, rgba(82,183,136,.25), rgba(82,183,136,.05));
+    border: 1px solid rgba(82,183,136,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; margin-bottom: 22px;
+  }
+  .feat-title { font-size: 1.15rem; font-weight: 800; margin-bottom: 10px; }
+  .feat-desc { color: var(--text2); font-size: .9rem; line-height: 1.7; }
+
+  /* ── BUSINESS ENGINE ── */
+  #engine {
+    padding: 100px 60px;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(82,183,136,.14), transparent 40%),
+      radial-gradient(circle at 85% 30%, rgba(149,213,178,.1), transparent 48%),
+      rgba(27,67,50,.12);
+  }
+  .engine-inner { max-width: 1300px; margin: 0 auto; }
+  .engine-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 26px;
+    flex-wrap: wrap;
+  }
+  .engine-tab {
+    border: 1px solid rgba(82,183,136,.35);
+    background: rgba(10,26,16,.55);
+    color: var(--text2);
+    border-radius: 999px;
+    padding: 9px 18px;
+    font-weight: 700;
+    font-size: .85rem;
+    cursor: pointer;
+    transition: background .25s, color .25s, transform .25s, border-color .25s;
+  }
+  .engine-tab:hover {
+    color: var(--white);
+    transform: translateY(-2px);
+    border-color: rgba(82,183,136,.6);
+  }
+  .engine-tab.active {
+    color: #0a1a10;
+    background: linear-gradient(135deg, var(--accent), var(--light));
+    border-color: transparent;
+  }
+  .engine-panel {
+    display: none;
+    background: rgba(10,26,16,.45);
+    border: 1px solid rgba(82,183,136,.22);
+    border-radius: 24px;
+    padding: 32px;
+    backdrop-filter: blur(14px);
+  }
+  .engine-panel.active { display: block; }
+  .engine-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .engine-panel-head h3 { font-size: 1.35rem; font-weight: 800; }
+  .engine-panel-head p { color: var(--text2); max-width: 760px; line-height: 1.7; font-size: .95rem; }
+  .engine-tools-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 14px;
+  }
+  .engine-tool-card {
+    background: rgba(27,67,50,.58);
+    border: 1px solid rgba(82,183,136,.22);
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .engine-tool-card label {
+    display: block;
+    font-size: .76rem;
+    color: var(--light);
+    text-transform: uppercase;
+    letter-spacing: .9px;
+    margin-bottom: 7px;
+    font-weight: 700;
+  }
+  .engine-input {
+    width: 100%;
+    border: 1px solid rgba(82,183,136,.35);
+    background: rgba(10,26,16,.55);
+    border-radius: 10px;
+    color: var(--white);
+    padding: 11px 12px;
+    font-size: .88rem;
+    outline: none;
+  }
+  .engine-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(82,183,136,.18);
+  }
+  .engine-range { width: 100%; accent-color: var(--accent); }
+  .engine-action {
+    margin-top: 12px;
+    width: 100%;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), #40916C);
+    color: #0a1a10;
+    font-weight: 800;
+    padding: 11px 12px;
+    cursor: pointer;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .engine-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(82,183,136,.32);
+  }
+  .tool-title { font-size: 1rem; font-weight: 800; margin-bottom: 10px; }
+  .engine-mini { color: var(--text2); font-size: .84rem; line-height: 1.55; }
+  .output-stack {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .output-tile {
+    background: rgba(10,26,16,.42);
+    border: 1px solid rgba(82,183,136,.2);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .output-tile strong {
+    display: block;
+    font-size: .73rem;
+    color: var(--light);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-bottom: 4px;
+  }
+  .output-tile span { color: var(--white); font-size: .86rem; line-height: 1.5; }
+  .stage-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .stage-card {
+    background: rgba(27,67,50,.62);
+    border: 1px solid rgba(82,183,136,.24);
+    border-radius: 16px;
+    padding: 16px;
+    min-height: 188px;
+    position: relative;
+  }
+  .stage-index {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(82,183,136,.2);
+    border: 1px solid rgba(82,183,136,.4);
+    color: var(--accent);
+    font-size: .78rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+  .stage-title { font-size: .96rem; font-weight: 800; margin-bottom: 8px; }
+  .stage-desc { color: var(--text2); font-size: .84rem; line-height: 1.55; }
+  .stage-proof {
+    margin-top: 10px;
+    display: inline-block;
+    font-size: .7rem;
+    color: var(--light);
+    border: 1px dashed rgba(149,213,178,.45);
+    border-radius: 999px;
+    padding: 4px 10px;
+  }
+  .placeholder {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: .68rem;
+    color: #ffd59e;
+    background: rgba(255,186,91,.12);
+    border: 1px solid rgba(255,186,91,.34);
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-weight: 700;
+    letter-spacing: .3px;
+  }
+  .scm-mode-switch {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .mode-btn {
+    border: 1px solid rgba(82,183,136,.35);
+    background: rgba(10,26,16,.45);
+    color: var(--text2);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .mode-btn.active {
+    color: #0a1a10;
+    background: var(--light);
+    border-color: transparent;
+  }
+  .shared-flow {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(82,183,136,.2);
+  }
+  .shared-flow-title {
+    font-size: .82rem;
+    color: var(--light);
+    text-transform: uppercase;
+    letter-spacing: 1.1px;
+    margin-bottom: 9px;
+    font-weight: 700;
+  }
+  .chip-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .flow-chip {
+    background: rgba(82,183,136,.12);
+    border: 1px solid rgba(82,183,136,.3);
+    border-radius: 999px;
+    color: var(--white);
+    padding: 6px 11px;
+    font-size: .76rem;
+    font-weight: 600;
+  }
+  .erp-grid,
+  .revenue-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .erp-card,
+  .revenue-card {
+    background: rgba(27,67,50,.6);
+    border: 1px solid rgba(82,183,136,.25);
+    border-radius: 16px;
+    padding: 18px;
+  }
+  .erp-name,
+  .revenue-name {
+    font-size: .94rem;
+    font-weight: 800;
+    margin-bottom: 7px;
+  }
+  .erp-desc,
+  .revenue-desc {
+    color: var(--text2);
+    font-size: .85rem;
+    line-height: 1.55;
+  }
+
+  /* ── COMPETITIVE BENCHMARK ── */
+  #benchmark { padding: 100px 60px; max-width: 1300px; margin: 0 auto; }
+  .benchmark-wrap {
+    background: rgba(10,26,16,.45);
+    border: 1px solid rgba(82,183,136,.22);
+    border-radius: 24px;
+    padding: 26px;
+    backdrop-filter: blur(14px);
+    overflow: auto;
+  }
+  .bench-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 860px;
+  }
+  .bench-table th,
+  .bench-table td {
+    border-bottom: 1px solid rgba(82,183,136,.18);
+    padding: 13px 10px;
+    text-align: left;
+    vertical-align: top;
+    font-size: .85rem;
+  }
+  .bench-table th {
+    color: var(--light);
+    font-size: .76rem;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    font-weight: 700;
+  }
+  .bench-table td:first-child {
+    color: var(--white);
+    font-weight: 700;
+    width: 26%;
+  }
+  .bench-good { color: var(--light); font-weight: 700; }
+  .bench-mid { color: #ffd59e; font-weight: 700; }
+  .bench-low { color: #ffadad; font-weight: 700; }
+  .bench-note {
+    margin-top: 14px;
+    color: var(--text2);
+    font-size: .8rem;
+    line-height: 1.55;
+  }
+
+  /* ── PROJECT RECOMMENDER ── */
+  #projects { padding: 100px 60px; max-width: 1300px; margin: 0 auto; }
+  .project-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .project-card {
+    background: rgba(27,67,50,.6);
+    border: 1px solid rgba(82,183,136,.25);
+    border-radius: 18px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .project-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .project-pill {
+    border: 1px solid rgba(82,183,136,.32);
+    background: rgba(10,26,16,.45);
+    color: var(--light);
+    border-radius: 999px;
+    font-size: .7rem;
+    font-weight: 700;
+    padding: 4px 9px;
+    letter-spacing: .4px;
+  }
+  .project-title { font-size: 1rem; font-weight: 800; }
+  .project-desc { color: var(--text2); font-size: .86rem; line-height: 1.55; }
+  .project-links a {
+    display: inline-block;
+    margin-right: 8px;
+    margin-bottom: 6px;
+    text-decoration: none;
+    color: var(--white);
+    font-size: .78rem;
+    font-weight: 700;
+    border: 1px solid rgba(82,183,136,.34);
+    border-radius: 999px;
+    padding: 6px 10px;
+    transition: background .2s, transform .2s;
+  }
+  .project-links a:hover {
+    background: rgba(82,183,136,.14);
+    transform: translateY(-1px);
+  }
+  .project-empty {
+    grid-column: 1 / -1;
+    background: rgba(27,67,50,.58);
+    border: 1px dashed rgba(82,183,136,.35);
+    border-radius: 16px;
+    padding: 20px;
+    color: var(--text2);
+    font-size: .9rem;
+  }
+
+  /* ── HOW IT WORKS ── */
+  #how { padding: 100px 60px; background: rgba(27,67,50,.12); }
+  .how-inner { max-width: 1100px; margin: 0 auto; }
+  .how-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 60px; position: relative; }
+  .how-steps::before {
+    content: ''; position: absolute;
+    top: 36px; left: 12.5%; right: 12.5%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .step { text-align: center; padding: 0 20px; position: relative; }
+  .step-num {
+    width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 20px;
+    background: linear-gradient(135deg, var(--g3), var(--g2));
+    border: 2px solid rgba(82,183,136,.5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 900; color: var(--accent);
+    position: relative; z-index: 1;
+    box-shadow: 0 0 30px rgba(82,183,136,.25);
+  }
+  .step-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+  .step-desc { color: var(--text2); font-size: .85rem; line-height: 1.6; }
+
+  /* ── MATERIALS SHOWCASE ── */
+  #materials { padding: 100px 60px; max-width: 1300px; margin: 0 auto; }
+  .materials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 60px; }
+  .mat-card {
+    border-radius: 20px; overflow: hidden; position: relative;
+    aspect-ratio: 4/3;
+    background: var(--card-bg);
+    border: 1px solid rgba(82,183,136,.25);
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 22px;
+    transition: transform .3s, box-shadow .3s, border-color .3s;
+    cursor: pointer;
+    backdrop-filter: blur(16px);
+  }
+  .mat-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, 
+      rgba(82,183,136,0.1) 0%, 
+      rgba(10,26,16,0.9) 50%, 
+      rgba(27,67,50,0.8) 100%);
+    transition: opacity .3s;
+  }
+  .mat-card:hover { 
+    transform: scale(1.05) translateY(-8px); 
+    box-shadow: 0 25px 50px rgba(82,183,136,.3);
+    border-color: rgba(82,183,136,.6);
+  }
+  .mat-card:hover::before { opacity: 0.8; }
+  .mat-icon { 
+    position: absolute; top: 50%; left: 50%; 
+    transform: translate(-50%,-60%); 
+    font-size: 3.5rem; opacity: .5;
+    transition: transform .3s, opacity .3s;
+  }
+  .mat-card:hover .mat-icon {
+    transform: translate(-50%,-60%) scale(1.1);
+    opacity: .7;
+  }
+  .mat-info { position: relative; z-index: 1; }
+  .mat-name { 
+    font-size: 1.05rem; font-weight: 800; 
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  .mat-price { 
+    color: var(--accent); font-weight: 700; font-size: 1.1rem;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  .mat-tag {
+    position: absolute; top: 16px; right: 16px; z-index: 1;
+    background: rgba(82,183,136,.3); 
+    border: 1px solid rgba(82,183,136,.6);
+    backdrop-filter: blur(8px);
+    color: var(--white); border-radius: 8px;
+    padding: 4px 12px; font-size: .72rem; font-weight: 700;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  }
+
+  /* ── CTA ── */
+  #cta {
+    padding: 120px 60px; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  #cta::before {
+    content: ''; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 700px; height: 700px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(82,183,136,.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  #cta-canvas { position: absolute; inset: 0; pointer-events: none; }
+  .cta-content { position: relative; z-index: 2; }
+  .cta-title { font-size: clamp(2.4rem, 4vw, 4rem); font-weight: 900; letter-spacing: -1.5px; margin-bottom: 20px; }
+  .cta-sub { font-size: 1.1rem; color: var(--text2); margin-bottom: 40px; max-width: 520px; margin-left: auto; margin-right: auto; }
+  .cta-btns { display: flex; gap: 16px; justify-content: center; }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 48px 60px; border-top: 1px solid rgba(82,183,136,.12);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 20px;
+  }
+  .footer-logo { display: flex; align-items: center; gap: 10px; }
+  .footer-logo span { font-weight: 800; font-size: 1rem; }
+  .footer-links { display: flex; gap: 28px; }
+  .footer-links a { color: var(--text2); text-decoration: none; font-size: .85rem; transition: color .2s; }
+  .footer-links a:hover { color: var(--accent); }
+  .footer-copy { color: rgba(168,216,190,.5); font-size: .8rem; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    nav { padding: 16px 24px; }
+    .nav-links { display: none; }
+    .hero-content { padding: 0 24px; }
+    #video-background { 
+      /* Ensure video covers properly on mobile */
+      object-fit: cover;
+      object-position: center;
+    }
+    .stats-grid { grid-template-columns: repeat(2,1fr); }
+    .features-grid { grid-template-columns: 1fr; }
+    #features, #materials, #how, #cta, #projects { padding: 70px 24px; }
+    #engine, #benchmark { padding: 70px 24px; }
+    .how-steps { grid-template-columns: repeat(2,1fr); gap: 32px; }
+    .how-steps::before { display: none; }
+    .materials-grid { grid-template-columns: 1fr 1fr; }
+    .stage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .engine-tools-grid { grid-template-columns: 1fr; }
+    .erp-grid, .revenue-grid { grid-template-columns: 1fr; }
+    .project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    footer { flex-direction: column; text-align: center; padding: 32px 24px; }
+  }
+  @media (max-width: 560px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .materials-grid { grid-template-columns: 1fr; }
+    .hero-btns { flex-direction: column; }
+    .cta-btns { flex-direction: column; align-items: center; }
+    .stage-grid { grid-template-columns: 1fr; }
+    .engine-panel { padding: 20px; }
+    .benchmark-wrap { padding: 16px; }
+    .output-stack { grid-template-columns: 1fr; }
+    .project-grid { grid-template-columns: 1fr; }
+    #video-background {
+      /* Mobile optimization */
+      height: 100vh;
+      width: 100vw;
+    }
+  }
+  
+  /* ── VIDEO BACKGROUND OPTIMIZATIONS ── */
+  @media (prefers-reduced-motion: reduce) {
+    #video-background {
+      display: none;
+    }
+    #three-canvas {
+      opacity: 1 !important;
+    }
+  }
+  
+  /* Ensure video doesn't interfere with text selection */
+  #video-background {
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* ── REVEAL ANIMATION CLASSES ── */
+  .reveal { opacity: 0; transform: translateY(32px); }
+  .reveal.visible { opacity: 1; transform: translateY(0); transition: opacity .7s ease, transform .7s ease; }
+  .reveal-left { opacity: 0; transform: translateX(-32px); }
+  .reveal-left.visible { opacity: 1; transform: translateX(0); transition: opacity .7s ease, transform .7s ease; }
+  .reveal-right { opacity: 0; transform: translateX(32px); }
+  .reveal-right.visible { opacity: 1; transform: translateX(0); transition: opacity .7s ease, transform .7s ease; }
+</style>
+</head>
+
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────────────────────────────── -->
+<nav id="navbar">
+  <a class="nav-logo" href="#">
+    <svg viewBox="0 0 36 36" fill="none">
+      <circle cx="18" cy="18" r="17" stroke="#52B788" stroke-width="2"/>
+      <path d="M10 22 C10 15 18 10 26 14" stroke="#52B788" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <path d="M26 14 L23 11 M26 14 L23 17" stroke="#52B788" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="18" cy="22" r="4" fill="#52B788" opacity=".7"/>
+    </svg>
+    <span>ReClaim</span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#engine">Business Engine</a>
+    <a href="#how">How it works</a>
+    <a href="#projects">Projects</a>
+    <a href="#materials">Materials</a>
+    <a href="#benchmark">Competitors</a>
+  </div>
+  <a href="../index.html" class="nav-cta">Get Started →</a>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────────────────────────────── -->
+<section id="hero">
+  <!-- Video Background -->
+  <video id="video-background" autoplay muted loop playsinline>
+    <source src="../assets/videos/26070-357512237_medium.mp4" type="video/mp4">
+    <!-- Fallback for browsers that don't support video -->
+  </video>
+  
+  <!-- Video Overlay for better text readability -->
+  <div id="video-overlay"></div>
+  
+  <!-- Three.js Canvas (reduced opacity to complement video) -->
+  <canvas id="three-canvas"></canvas>
+
+  <div class="hero-content" id="hero-text">
+    <div class="hero-badge">
+      <span></span> Sustainable Materials Marketplace
+    </div>
+    <h1 class="hero-title">
+      Give Materials<br/>a <em>Second Life</em>
+    </h1>
+    <p class="hero-subtitle">
+      Shop certified lab surplus — electronics, metals, chemicals and more.
+      Every purchase prevents waste and saves CO₂.
+    </p>
+    <div class="hero-btns">
+      <a href="../index.html" class="btn-primary">Explore Materials</a>
+      <a href="#how" class="btn-secondary">How it works</a>
+    </div>
+  </div>
+
+  <div class="hero-scroll">
+    <span>Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- ── BUSINESS ENGINE ────────────────────────────────────────────────────── -->
+<section id="engine">
+  <div class="engine-inner">
+    <div class="reveal">
+      <div class="section-tag">Interactive Engine</div>
+      <h2 class="section-title">Use Real Feature Simulators</h2>
+      <p class="section-sub">This is not only a description layer. Use these controls to simulate CRM journeys, SCM decisions, revenue outcomes, and competitor positioning.</p>
+    </div>
+
+    <div class="engine-tabs reveal" aria-label="Business lifecycle views" role="tablist">
+      <button type="button" class="engine-tab active" data-tab="crm" role="tab" aria-selected="true" aria-controls="panel-crm">CRM Simulator</button>
+      <button type="button" class="engine-tab" data-tab="scm" role="tab" aria-selected="false" aria-controls="panel-scm">SCM Planner</button>
+      <button type="button" class="engine-tab" data-tab="revenue" role="tab" aria-selected="false" aria-controls="panel-revenue">Revenue Estimator</button>
+      <button type="button" class="engine-tab" data-tab="erp" role="tab" aria-selected="false" aria-controls="panel-erp">ERP Modules</button>
+    </div>
+
+    <div id="panel-crm" class="engine-panel active reveal" role="tabpanel">
+      <div class="engine-panel-head">
+        <h3>CRM Stage Simulator (Customer + Admin)</h3>
+        <p>Choose role and stage to see exact implementation features, trigger actions, and success indicators for your funnel.</p>
+      </div>
+      <div class="engine-tools-grid">
+        <div class="engine-tool-card">
+          <label for="crm-role">Role Lens</label>
+          <select id="crm-role" class="engine-input">
+            <option value="customer">Customer Side</option>
+            <option value="admin">Admin Side</option>
+          </select>
+          <label for="crm-stage" style="margin-top:10px">CRM Stage</label>
+          <select id="crm-stage" class="engine-input">
+            <option value="selection">Reaching Potential Customer (Selection)</option>
+            <option value="acquisition">Customer Acquisition</option>
+            <option value="conversion">Conversion</option>
+            <option value="retention">Retention (Personalized Email/Trigger)</option>
+            <option value="loyalty">Loyalty (Points / Benefits)</option>
+          </select>
+          <button type="button" id="crm-apply" class="engine-action">Run Stage Simulation</button>
+        </div>
+        <div class="engine-tool-card">
+          <h4 class="tool-title">Stage Output</h4>
+          <div id="crm-output"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-scm" class="engine-panel reveal" role="tabpanel" aria-hidden="true">
+      <div class="engine-panel-head">
+        <h3>Push/Pull SCM Decision Planner</h3>
+        <p>Set demand condition and stock health to view recommended SCM model, execution path, and admin intervention points.</p>
+      </div>
+      <div class="engine-tools-grid">
+        <div class="engine-tool-card">
+          <label for="scm-demand">Demand Situation</label>
+          <select id="scm-demand" class="engine-input">
+            <option value="predictable">Predictable Semester Demand</option>
+            <option value="spike">Sudden Project Spike</option>
+            <option value="custom">Custom Mixed Pattern</option>
+          </select>
+          <label for="scm-stock" style="margin-top:10px">Current Stock Health (%)</label>
+          <input id="scm-stock" class="engine-range" type="range" min="10" max="100" value="68"/>
+          <div id="scm-stock-value" class="engine-mini">68%</div>
+          <button type="button" id="scm-evaluate" class="engine-action">Evaluate SCM Route</button>
+        </div>
+        <div class="engine-tool-card">
+          <h4 class="tool-title">Planner Output</h4>
+          <div id="scm-output"></div>
+        </div>
+      </div>
+      <div class="shared-flow">
+        <div class="shared-flow-title">Shared Execution Stages</div>
+        <div id="scm-shared-flow" class="chip-row"></div>
+      </div>
+    </div>
+
+    <div id="panel-revenue" class="engine-panel reveal" role="tabpanel" aria-hidden="true">
+      <div class="engine-panel-head">
+        <h3>Revenue Model Estimator</h3>
+        <p>Test how order volume, price, and fee policy impact projected monthly revenue. Use this for customer pricing and admin planning conversations.</p>
+      </div>
+      <div class="engine-tools-grid">
+        <div class="engine-tool-card">
+          <label for="rev-orders">Monthly Orders</label>
+          <input id="rev-orders" class="engine-input" type="number" min="1" value="240"/>
+          <label for="rev-aov" style="margin-top:10px">Average Order Value (INR)</label>
+          <input id="rev-aov" class="engine-input" type="number" min="1" value="499"/>
+          <label for="rev-fee" style="margin-top:10px">Platform Fee (%)</label>
+          <input id="rev-fee" class="engine-input" type="number" min="0" max="100" value="8"/>
+          <button type="button" id="rev-calc" class="engine-action">Calculate Revenue</button>
+        </div>
+        <div class="engine-tool-card">
+          <h4 class="tool-title">Revenue Output</h4>
+          <div id="revenue-output"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-erp" class="engine-panel reveal" role="tabpanel" aria-hidden="true">
+      <div class="engine-panel-head">
+        <h3>ERP Module Command Center</h3>
+        <p>See which ERP module owns each operation and whether it serves Admin workflows, Customer workflows, or both.</p>
+      </div>
+      <div id="erp-grid" class="erp-grid"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── STATS ───────────────────────────────────────────────────────────────── -->
+<section id="stats">
+  <div class="stats-grid">
+    <div class="stat-card reveal">
+      <div class="stat-icon">♻️</div>
+      <div class="stat-num" data-target="1200">0</div>
+      <div class="stat-label">Materials Listed</div>
+    </div>
+    <div class="stat-card reveal" style="transition-delay:.1s">
+      <div class="stat-icon">🌿</div>
+      <div class="stat-num" data-target="850" data-suffix="kg">0</div>
+      <div class="stat-label">CO₂ Prevented</div>
+    </div>
+    <div class="stat-card reveal" style="transition-delay:.2s">
+      <div class="stat-icon">🏫</div>
+      <div class="stat-num" data-target="40">0</div>
+      <div class="stat-label">Partner Labs</div>
+    </div>
+    <div class="stat-card reveal" style="transition-delay:.3s">
+      <div class="stat-icon">⚡</div>
+      <div class="stat-num" data-target="96" data-suffix="%">0</div>
+      <div class="stat-label">Reuse Rate</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── COMPETITIVE BENCHMARK ─────────────────────────────────────────────── -->
+<section id="benchmark">
+  <div class="reveal">
+    <div class="section-tag">Unique Edge</div>
+    <h2 class="section-title">Competitor Gap Explorer</h2>
+    <p class="section-sub">Select a competitor type and inspect where ReClaim is uniquely stronger with concrete feature coverage.</p>
+  </div>
+
+  <div class="scm-mode-switch reveal" aria-label="Competitor selector" style="margin-bottom:14px">
+    <button type="button" class="mode-btn active" data-competitor="marketplace">Generic Marketplace</button>
+    <button type="button" class="mode-btn" data-competitor="spreadsheet">Spreadsheet Tracking</button>
+    <button type="button" class="mode-btn" data-competitor="singleapp">Single-Function Recycling App</button>
+  </div>
+
+  <div class="benchmark-wrap reveal">
+    <div id="competitor-summary" class="bench-note" style="margin-top:0;margin-bottom:12px"></div>
+    <table class="bench-table" aria-label="Competitive comparison matrix">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>ReClaim</th>
+          <th id="competitor-col-name">Generic Marketplace</th>
+        </tr>
+      </thead>
+      <tbody id="benchmark-body"></tbody>
+    </table>
+    <p class="bench-note">Rows are mapped to the four core business concepts: CRM, SCM, Revenue, and unique differentiators.</p>
+  </div>
+</section>
+
+<!-- ── FEATURES ────────────────────────────────────────────────────────────── -->
+<section id="features">
+  <div class="reveal">
+    <div class="section-tag">Why ReClaim</div>
+    <h2 class="section-title">Built for the Circular Economy</h2>
+    <p class="section-sub">From AI-powered detection to real-time carbon tracking — every feature drives sustainable impact.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card reveal" style="transition-delay:.05s">
+      <div class="feat-icon">🤖</div>
+      <div class="feat-title">AI Material Detection</div>
+      <p class="feat-desc">Snap a photo. Our AI identifies the material, estimates its reuse potential, and lists it for sale in seconds.</p>
+    </div>
+    <div class="feat-card reveal" style="transition-delay:.1s">
+      <div class="feat-icon">🌍</div>
+      <div class="feat-title">Carbon Passport</div>
+      <p class="feat-desc">Every item ships with a digital lifecycle passport tracking its CO₂ savings and reuse history.</p>
+    </div>
+    <div class="feat-card reveal" style="transition-delay:.15s">
+      <div class="feat-icon">🔒</div>
+      <div class="feat-title">Secure Payments</div>
+      <p class="feat-desc">Razorpay-powered checkout with UPI, cards, and COD. Escrow protection on every transaction.</p>
+    </div>
+    <div class="feat-card reveal" style="transition-delay:.2s">
+      <div class="feat-icon">📡</div>
+      <div class="feat-title">Real-time Matching</div>
+      <p class="feat-desc">Get notified instantly when a material matching your project requirements becomes available nearby.</p>
+    </div>
+    <div class="feat-card reveal" style="transition-delay:.25s">
+      <div class="feat-icon">🏆</div>
+      <div class="feat-title">Impact Leaderboard</div>
+      <p class="feat-desc">Compete with other labs and campuses on sustainability metrics. Earn badges and certificates.</p>
+    </div>
+    <div class="feat-card reveal" style="transition-delay:.3s">
+      <div class="feat-icon">🔄</div>
+      <div class="feat-title">Barter Exchange</div>
+      <p class="feat-desc">Don't have budget? Trade materials or skills directly with other labs through our barter system.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── PROJECT RECOMMENDER ────────────────────────────────────────────────── -->
+<section id="projects">
+  <div class="reveal">
+    <div class="section-tag">Student Project Paths</div>
+    <h2 class="section-title">Project Recommendations With Tutorials</h2>
+    <p class="section-sub">Pick your interest area to get build-ready project ideas with direct tutorial and implementation references.</p>
+  </div>
+
+  <div class="engine-tools-grid reveal" style="margin-bottom:18px">
+    <div class="engine-tool-card">
+      <label for="proj-domain">Domain</label>
+      <select id="proj-domain" class="engine-input">
+        <option value="all">All Domains</option>
+        <option value="ai">AI/ML</option>
+        <option value="iot">IoT/Embedded</option>
+        <option value="fullstack">Full-Stack</option>
+        <option value="sustainability">Sustainability Analytics</option>
+      </select>
+      <label for="proj-level" style="margin-top:10px">Difficulty</label>
+      <select id="proj-level" class="engine-input">
+        <option value="all">All Levels</option>
+        <option value="beginner">Beginner</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="advanced">Advanced</option>
+      </select>
+      <button type="button" id="proj-filter" class="engine-action">Recommend Projects</button>
+    </div>
+    <div class="engine-tool-card">
+      <h4 class="tool-title">How to Use</h4>
+      <p class="engine-mini">Each recommendation includes:</p>
+      <div class="chip-row">
+        <span class="flow-chip">Project idea</span>
+        <span class="flow-chip">Implementation stack</span>
+        <span class="flow-chip">Step-by-step tutorial links</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="project-grid" class="project-grid"></div>
+</section>
+
+<!-- ── HOW IT WORKS ─────────────────────────────────────────────────────────── -->
+<section id="how">
+  <div class="how-inner">
+    <div class="reveal" style="text-align:center">
+      <div class="section-tag">Process</div>
+      <h2 class="section-title" style="margin: 0 auto 14px">From Lab to Your Hands</h2>
+      <p class="section-sub" style="margin: 0 auto 0">Four simple steps to give any material a second life.</p>
+    </div>
+    <div class="how-steps">
+      <div class="step reveal" style="transition-delay:.05s">
+        <div class="step-num">1</div>
+        <div class="step-title">Capture</div>
+        <p class="step-desc">Lab technician scans surplus material with the ReClaim app. AI auto-fills details.</p>
+      </div>
+      <div class="step reveal" style="transition-delay:.1s">
+        <div class="step-num">2</div>
+        <div class="step-title">Certify</div>
+        <p class="step-desc">Material gets a digital passport — condition, carbon data, and quality grade.</p>
+      </div>
+      <div class="step reveal" style="transition-delay:.15s">
+        <div class="step-num">3</div>
+        <div class="step-title">Shop</div>
+        <p class="step-desc">Students browse the marketplace and add items to cart at up to 60% off retail.</p>
+      </div>
+      <div class="step reveal" style="transition-delay:.2s">
+        <div class="step-num">4</div>
+        <div class="step-title">Impact</div>
+        <p class="step-desc">Both parties receive a CO₂ impact certificate — waste prevented, resources saved.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── MATERIALS SHOWCASE ──────────────────────────────────────────────────── -->
+<section id="materials">
+  <div class="reveal">
+    <div class="section-tag">Marketplace</div>
+    <h2 class="section-title">What's Available Today</h2>
+    <p class="section-sub">Certified surplus from top engineering colleges — ready to order.</p>
+  </div>
+  <div class="materials-grid">
+    <div class="mat-card reveal" style="background:linear-gradient(135deg,rgba(27,67,50,.7),rgba(10,26,16,.9));transition-delay:.05s">
+      <span class="mat-tag">Electronic</span>
+      <div class="mat-icon">🔌</div>
+      <div class="mat-info">
+        <div class="mat-name">Arduino Uno Rev3</div>
+        <div class="mat-price">₹449</div>
+      </div>
+    </div>
+    <div class="mat-card reveal" style="background:linear-gradient(135deg,rgba(40,80,60,.7),rgba(10,26,16,.9));transition-delay:.1s">
+      <span class="mat-tag">Metal</span>
+      <div class="mat-icon">🪡</div>
+      <div class="mat-info">
+        <div class="mat-name">Copper Wire Spool 1kg</div>
+        <div class="mat-price">₹299</div>
+      </div>
+    </div>
+    <div class="mat-card reveal" style="background:linear-gradient(135deg,rgba(20,60,50,.7),rgba(10,26,16,.9));transition-delay:.15s">
+      <span class="mat-tag">Electronic</span>
+      <div class="mat-icon">🖥️</div>
+      <div class="mat-info">
+        <div class="mat-name">Raspberry Pi 4 (2GB)</div>
+        <div class="mat-price">₹899</div>
+      </div>
+    </div>
+    <div class="mat-card reveal" style="background:linear-gradient(135deg,rgba(35,70,55,.7),rgba(10,26,16,.9));transition-delay:.2s">
+      <span class="mat-tag">Chemical</span>
+      <div class="mat-icon">🧪</div>
+      <div class="mat-info">
+        <div class="mat-name">Borosilicate Flask 500ml</div>
+        <div class="mat-price">₹89</div>
+      </div>
+    </div>
+    <div class="mat-card reveal" style="background:linear-gradient(135deg,rgba(30,65,50,.7),rgba(10,26,16,.9));transition-delay:.25s">
+      <span class="mat-tag">Plastic</span>
+      <div class="mat-icon">🟦</div>
+      <div class="mat-info">
+        <div class="mat-name">Acrylic Sheet 60×90cm</div>
+        <div class="mat-price">₹199</div>
+      </div>
+    </div>
+    <div class="mat-card reveal" style="background:linear-gradient(135deg,rgba(45,90,65,.7),rgba(10,26,16,.9));transition-delay:.3s">
+      <span class="mat-tag">Electronic</span>
+      <div class="mat-icon">💡</div>
+      <div class="mat-info">
+        <div class="mat-name">LED Strip RGB 5m</div>
+        <div class="mat-price">₹399</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ─────────────────────────────────────────────────────────────────── -->
+<section id="cta">
+  <canvas id="cta-canvas"></canvas>
+  <div class="cta-content">
+    <div class="section-tag" style="margin-bottom:20px">Join the Movement</div>
+    <h2 class="cta-title reveal">Ready to Reclaim<br/>What's Valuable?</h2>
+    <p class="cta-sub reveal">Thousands of students and labs are already building a greener campus. Your surplus is someone's treasure.</p>
+    <div class="cta-btns reveal">
+      <a href="../index.html" class="btn-primary">Start Shopping →</a>
+      <a href="../index.html" class="btn-secondary">List a Material</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ──────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-logo">
+    <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+      <circle cx="18" cy="18" r="17" stroke="#52B788" stroke-width="2"/>
+      <path d="M10 22 C10 15 18 10 26 14" stroke="#52B788" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <circle cx="18" cy="22" r="4" fill="#52B788" opacity=".7"/>
+    </svg>
+    <span>ReClaim</span>
+  </div>
+  <div class="footer-links">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Contact</a>
+    <a href="../index.html">App</a>
+  </div>
+  <p class="footer-copy">© 2026 ReClaim. Sustainable by design.</p>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     VIDEO BACKGROUND HANDLER
+ ═══════════════════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+  const video = document.getElementById('video-background');
+  const threeCanvas = document.getElementById('three-canvas');
+  
+  // Handle video loading
+  video.addEventListener('loadeddata', function() {
+    console.log('Video loaded successfully');
+    // Reduce Three.js opacity when video is available
+    threeCanvas.style.opacity = '0.3';
+  });
+  
+  video.addEventListener('error', function(e) {
+    console.log('Video failed to load, using Three.js fallback');
+    // Hide video and show full Three.js scene
+    video.style.display = 'none';
+    document.getElementById('video-overlay').style.display = 'none';
+    threeCanvas.style.opacity = '1';
+  });
+  
+  // Ensure video plays on user interaction (mobile requirement)
+  document.addEventListener('click', function() {
+    if (video.paused) {
+      video.play().catch(e => console.log('Video autoplay failed:', e));
+    }
+  }, { once: true });
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     THREE.JS SCENE
+ ═══════════════════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  // ── Renderer ───────────────────────────────────────────────────────────────
+  const canvas = document.getElementById('three-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0); // Fully transparent
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+  camera.position.set(0, 0, 18);
+
+  // ── Lighting ───────────────────────────────────────────────────────────────
+  const ambient = new THREE.AmbientLight(0x52b788, 0.4);
+  scene.add(ambient);
+  const dirLight = new THREE.DirectionalLight(0x95d5b2, 1.2);
+  dirLight.position.set(5, 8, 6);
+  scene.add(dirLight);
+  const pointLight1 = new THREE.PointLight(0x52b788, 2, 30);
+  pointLight1.position.set(-6, 4, 8);
+  scene.add(pointLight1);
+  const pointLight2 = new THREE.PointLight(0x40916c, 1.5, 25);
+  pointLight2.position.set(8, -4, 5);
+  scene.add(pointLight2);
+
+  // ── Globe ──────────────────────────────────────────────────────────────────
+  const globeGroup = new THREE.Group();
+  scene.add(globeGroup);
+  globeGroup.position.set(5.5, 0, 0);
+
+  // Solid sphere (dark core)
+  const coreMat = new THREE.MeshPhongMaterial({
+    color: 0x0d2818, transparent: true, opacity: 0.95,
+    shininess: 40,
+  });
+  const core = new THREE.Mesh(new THREE.SphereGeometry(3.6, 48, 48), coreMat);
+  globeGroup.add(core);
+
+  // Wireframe overlay
+  const wireMat = new THREE.MeshBasicMaterial({
+    color: 0x52b788, wireframe: true, transparent: true, opacity: 0.18,
+  });
+  const wire = new THREE.Mesh(new THREE.SphereGeometry(3.62, 28, 28), wireMat);
+  globeGroup.add(wire);
+
+  // Glow sphere
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: 0x52b788, transparent: true, opacity: 0.06, side: THREE.BackSide,
+  });
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(4.3, 32, 32), glowMat);
+  globeGroup.add(glow);
+
+  // Orbit rings
+  function makeRing(radius, tilt, color, opacity) {
+    const curve = new THREE.EllipseCurve(0, 0, radius, radius * 0.25, 0, 2 * Math.PI);
+    const pts = curve.getPoints(120);
+    const geo = new THREE.BufferGeometry().setFromPoints(
+      pts.map(p => new THREE.Vector3(p.x, p.y, 0))
+    );
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    const ring = new THREE.Line(geo, mat);
+    ring.rotation.x = tilt;
+    return ring;
+  }
+  globeGroup.add(makeRing(5.5, 0.3, 0x52b788, 0.5));
+  globeGroup.add(makeRing(6.8, -0.6, 0x95d5b2, 0.3));
+  globeGroup.add(makeRing(4.2, 1.1, 0x40916c, 0.4));
+
+  // Dots on globe surface (cities)
+  const dotsMat = new THREE.PointsMaterial({ color: 0x95d5b2, size: 0.06, transparent: true, opacity: 0.9 });
+  const dotsGeo = new THREE.BufferGeometry();
+  const dotsPos = [];
+  for (let i = 0; i < 280; i++) {
+    const phi = Math.acos(2 * Math.random() - 1);
+    const theta = Math.random() * 2 * Math.PI;
+    const r = 3.65;
+    dotsPos.push(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
+  }
+  dotsGeo.setAttribute('position', new THREE.Float32BufferAttribute(dotsPos, 3));
+  globeGroup.add(new THREE.Points(dotsGeo, dotsMat));
+
+  // ── Floating Material Objects ──────────────────────────────────────────────
+  const matObjs = [];
+
+  function createFloating(geo, color, x, y, z, rotSpeed) {
+    const mat = new THREE.MeshPhongMaterial({
+      color, transparent: true, opacity: 0.88,
+      shininess: 80, emissive: color, emissiveIntensity: 0.18,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y, z);
+    mesh.userData = { rotSpeed, baseY: y, t: Math.random() * 1000 };
+    scene.add(mesh);
+    matObjs.push(mesh);
+
+    // Wireframe on top
+    const wf = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+      color: 0x52b788, wireframe: true, transparent: true, opacity: 0.2,
+    }));
+    wf.position.copy(mesh.position);
+    wf.userData = mesh.userData;
+    scene.add(wf);
+    matObjs.push(wf);
+    return mesh;
+  }
+
+  // Circuit board → box
+  createFloating(new THREE.BoxGeometry(1.1, 0.15, 1.1), 0x2d6a4f, -7, 2.5, 3, 0.008);
+  // Copper coil → torus
+  createFloating(new THREE.TorusGeometry(0.65, 0.18, 16, 50), 0xb87333, -8.5, -1.5, 2, 0.012);
+  // Flask → icosahedron
+  createFloating(new THREE.IcosahedronGeometry(0.65, 1), 0x40916c, -6, -3, 4, 0.006);
+  // LED → octahedron
+  createFloating(new THREE.OctahedronGeometry(0.5, 0), 0x74c69d, 2.5, 3.5, 2, 0.01);
+  // Metal rod → cylinder
+  createFloating(new THREE.CylinderGeometry(0.12, 0.12, 1.5, 16), 0x95a1a8, 3.5, -3, 3, 0.007);
+  // Acrylic → tetrahedron
+  createFloating(new THREE.TetrahedronGeometry(0.7, 0), 0x52b788, -9, 0.5, 5, 0.009);
+
+  // ── Particles ──────────────────────────────────────────────────────────────
+  const pCount = 1800;
+  const pGeo = new THREE.BufferGeometry();
+  const pPos = new Float32Array(pCount * 3);
+  const pSizes = new Float32Array(pCount);
+  for (let i = 0; i < pCount; i++) {
+    pPos[i * 3]     = (Math.random() - 0.5) * 50;
+    pPos[i * 3 + 1] = (Math.random() - 0.5) * 30;
+    pPos[i * 3 + 2] = (Math.random() - 0.5) * 20 - 5;
+    pSizes[i] = Math.random() * 0.07 + 0.02;
+  }
+  pGeo.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3));
+  pGeo.setAttribute('size', new THREE.Float32BufferAttribute(pSizes, 1));
+  const pMat = new THREE.PointsMaterial({
+    color: 0x52b788, size: 0.06, transparent: true, opacity: 0.45,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  const particles = new THREE.Points(pGeo, pMat);
+  scene.add(particles);
+
+  // Small bright core particles
+  const pGeo2 = new THREE.BufferGeometry();
+  const pPos2 = new Float32Array(400 * 3);
+  for (let i = 0; i < 400; i++) {
+    pPos2[i * 3]     = (Math.random() - 0.5) * 35;
+    pPos2[i * 3 + 1] = (Math.random() - 0.5) * 20;
+    pPos2[i * 3 + 2] = (Math.random() - 0.5) * 10;
+  }
+  pGeo2.setAttribute('position', new THREE.Float32BufferAttribute(pPos2, 3));
+  scene.add(new THREE.Points(pGeo2, new THREE.PointsMaterial({
+    color: 0xb7e4c7, size: 0.04, transparent: true, opacity: 0.6,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  })));
+
+  // ── Mouse ──────────────────────────────────────────────────────────────────
+  const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+  document.addEventListener('mousemove', e => {
+    mouse.tx = (e.clientX / window.innerWidth - 0.5) * 2;
+    mouse.ty = -(e.clientY / window.innerHeight - 0.5) * 2;
+  });
+
+  // ── Resize ─────────────────────────────────────────────────────────────────
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // ── Animation Loop ─────────────────────────────────────────────────────────
+  let t = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    t += 0.012;
+
+    // Smooth mouse follow
+    mouse.x += (mouse.tx - mouse.x) * 0.04;
+    mouse.y += (mouse.ty - mouse.y) * 0.04;
+
+    // Camera parallax
+    camera.position.x += (mouse.x * 2 - camera.position.x) * 0.03;
+    camera.position.y += (mouse.y * 1.2 - camera.position.y) * 0.03;
+    camera.lookAt(0, 0, 0);
+
+    // Globe rotation
+    globeGroup.rotation.y = t * 0.15;
+    globeGroup.rotation.x = Math.sin(t * 0.2) * 0.06;
+
+    // Floating objects
+    for (let i = 0; i < matObjs.length; i++) {
+      const obj = matObjs[i];
+      obj.rotation.x += obj.userData.rotSpeed * 0.7;
+      obj.rotation.y += obj.userData.rotSpeed;
+      obj.rotation.z += obj.userData.rotSpeed * 0.4;
+      obj.position.y = obj.userData.baseY + Math.sin(t * 0.5 + obj.userData.t) * 0.3;
+    }
+
+    // Particles drift
+    particles.rotation.y = t * 0.015;
+    particles.rotation.x = t * 0.007;
+
+    // Pulsing glow
+    pointLight1.intensity = 1.8 + Math.sin(t * 1.3) * 0.6;
+    pointLight2.intensity = 1.2 + Math.cos(t * 0.9) * 0.4;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // ── Hero text entrance ─────────────────────────────────────────────────────
+  const heroText = document.getElementById('hero-text');
+  setTimeout(() => {
+    heroText.style.transition = 'opacity 1s ease, transform 1s ease';
+    heroText.style.opacity = '1';
+    heroText.style.transform = 'translateY(0)';
+  }, 300);
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CTA MINI PARTICLE CANVAS
+ ═══════════════════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  const canvas = document.getElementById('cta-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  function resize() {
+    W = canvas.width  = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (let i = 0; i < 80; i++) {
+    particles.push({
+      x: Math.random() * 1920, y: Math.random() * 400,
+      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
+      r: Math.random() * 2 + 0.5, alpha: Math.random() * 0.4 + 0.1
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    for (const p of particles) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(82,183,136,${p.alpha})`;
+      ctx.fill();
+    }
+    // Draw connecting lines
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(82,183,136,${0.12 * (1 - dist / 120)})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SCROLL ANIMATIONS + STATS COUNTER
+ ═══════════════════════════════════════════════════════════════════════════ -->
+<script>
+// ── Navbar scroll ────────────────────────────────────────────────────────────
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 60);
+});
+
+// ── Reveal on scroll ─────────────────────────────────────────────────────────
+const reveals = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.12 });
+reveals.forEach(r => revealObs.observe(r));
+
+// ── Stats counter ─────────────────────────────────────────────────────────────
+function animateCount(el, target, suffix = '', duration = 1800) {
+  let start = null;
+  function step(ts) {
+    if (!start) start = ts;
+    const progress = Math.min((ts - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3); // cubic ease out
+    el.textContent = Math.round(ease * target) + suffix;
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+const statNums = document.querySelectorAll('.stat-num[data-target]');
+const statObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const el = e.target;
+      animateCount(el, +el.dataset.target, el.dataset.suffix || '', 2000);
+      statObs.unobserve(el);
+    }
+  });
+}, { threshold: 0.5 });
+statNums.forEach(n => statObs.observe(n));
+
+// ── Interactive Business Engine + Project Recommender ──────────────────────
+const crmMatrix = {
+  selection: {
+    customer: {
+      feature: 'Role + campus selection onboarding',
+      action: 'Choose profile and interests to personalize your feed',
+      kpi: 'Profile completion rate',
+      stage: 'Top of funnel'
+    },
+    admin: {
+      feature: 'Audience segmentation dashboard',
+      action: 'Create role-wise cohorts and first-touch campaigns',
+      kpi: 'Segment reach accuracy',
+      stage: 'Audience setup'
+    }
+  },
+  acquisition: {
+    customer: {
+      feature: 'Guided discovery and project-linked recommendations',
+      action: 'Save materials and start first request/cart',
+      kpi: 'First active session conversion',
+      stage: 'Lead activation'
+    },
+    admin: {
+      feature: 'Acquisition trigger rules',
+      action: 'Push context-aware prompts by category',
+      kpi: 'Cost per activated user',
+      stage: 'Activation ops'
+    }
+  },
+  conversion: {
+    customer: {
+      feature: 'Request-to-checkout streamlined flow',
+      action: 'Complete order with fewer screens',
+      kpi: 'Checkout completion rate',
+      stage: 'Revenue entry'
+    },
+    admin: {
+      feature: 'Conversion funnel monitoring',
+      action: 'Fix step drop-offs and stalled approvals',
+      kpi: 'Approval-to-purchase ratio',
+      stage: 'Funnel optimization'
+    }
+  },
+  retention: {
+    customer: {
+      feature: 'Personalized reminders and restock alerts',
+      action: 'Return for relevant opportunities and updates',
+      kpi: '30-day returning users',
+      stage: 'Re-engagement loop'
+    },
+    admin: {
+      feature: 'Lifecycle communication scheduler',
+      action: 'Set personalized email/in-app trigger journeys',
+      kpi: 'Reactivation rate',
+      stage: 'Retention automation'
+    }
+  },
+  loyalty: {
+    customer: {
+      feature: 'Points, badges, and benefits layer',
+      action: 'Earn rewards for reuse and consistent engagement',
+      kpi: 'Repeat order frequency',
+      stage: 'Advocacy and referrals'
+    },
+    admin: {
+      feature: 'Loyalty policy control panel',
+      action: 'Tune points rules and redemption tiers',
+      kpi: 'Loyal cohort share',
+      stage: 'Long-term value'
+    }
+  }
+};
+
+const scmSharedFlow = ['Sourcing', 'Intake', 'Quality Check', 'Inventory', 'Demand Matching', 'Fulfillment', 'Reverse Loop'];
+
+const erpModules = [
+  { name: 'CRM', owner: 'Admin + Customer', desc: 'Segmentation, lifecycle stages, and engagement logic.' },
+  { name: 'Inventory/WMS', owner: 'Admin', desc: 'Stock health, low stock alerts, and allocation visibility.' },
+  { name: 'Procurement', owner: 'Admin', desc: 'Request approvals and sourcing decisions.' },
+  { name: 'Order Management', owner: 'Admin + Customer', desc: 'Request, order, and status lifecycle tracking.' },
+  { name: 'Finance/Billing', owner: 'Admin + Customer', desc: 'Checkout, payment states, and transaction reconciliation.' },
+  { name: 'Analytics/Reporting', owner: 'Admin', desc: 'KPI dashboards for CRM, SCM, and revenue.' },
+  { name: 'Workflow/Notifications', owner: 'Admin + Customer', desc: 'Rule-based triggers for lifecycle and operations.' }
+];
+
+const competitorProfiles = {
+  marketplace: {
+    label: 'Generic Marketplace',
+    summary: 'Good at listing and buying, weak in lifecycle control and institutional SCM/ERP operations.',
+    rows: [
+      ['CRM lifecycle depth', '5-stage lifecycle implementation', 'Mostly acquisition/conversion only'],
+      ['SCM support', 'Push + Pull decision support', 'Mostly pull behavior only'],
+      ['Revenue clarity', 'Estimator with stage-level logic', 'Price listing without lifecycle context'],
+      ['Unique differentiator', 'Impact + loyalty + campus workflows', 'General buyer-seller flow']
+    ]
+  },
+  spreadsheet: {
+    label: 'Spreadsheet Tracking',
+    summary: 'Useful for manual logging, but not built for real-time workflows or user-facing journeys.',
+    rows: [
+      ['CRM lifecycle depth', 'Automated stage simulation', 'Manual updates and fragmented tracking'],
+      ['SCM support', 'Push/Pull planning guidance', 'No live SCM execution layer'],
+      ['Revenue clarity', 'Real-time calculator', 'Formula sheets, no customer context'],
+      ['Unique differentiator', 'Integrated app workflows', 'No in-product experience']
+    ]
+  },
+  singleapp: {
+    label: 'Single-Function Recycling App',
+    summary: 'Strong in one workflow but lacks end-to-end business lifecycle integration.',
+    rows: [
+      ['CRM lifecycle depth', 'Selection to loyalty continuity', 'Single-step or campaign-centric only'],
+      ['SCM support', 'Push/Pull + shared stage visibility', 'Limited operational depth'],
+      ['Revenue clarity', 'Transaction + projection capability', 'Often non-commercial or basic'],
+      ['Unique differentiator', 'ERP module coverage + project recommendations', 'Narrow use-case scope']
+    ]
+  }
+};
+
+const studentProjects = [
+  {
+    name: 'Smart E-Waste Sorter with CNN',
+    domain: 'ai',
+    level: 'intermediate',
+    desc: 'Train an image classifier to detect reusable electronics and suggest recycling paths.',
+    stack: 'Python, TensorFlow, OpenCV',
+    links: [
+      { label: 'TensorFlow Image Classification Tutorial', url: 'https://www.tensorflow.org/tutorials/images/classification' },
+      { label: 'OpenCV Intro Guide', url: 'https://docs.opencv.org/4.x/d6/d00/tutorial_py_root.html' }
+    ]
+  },
+  {
+    name: 'Campus Material Exchange App',
+    domain: 'fullstack',
+    level: 'beginner',
+    desc: 'Build a mini marketplace for students to list and request reusable lab items.',
+    stack: 'Flutter, Firebase, Node.js',
+    links: [
+      { label: 'Flutter Codelabs', url: 'https://docs.flutter.dev/codelabs' },
+      { label: 'Firebase for Flutter', url: 'https://firebase.google.com/docs/flutter/setup' }
+    ]
+  },
+  {
+    name: 'IoT Bin Fill and Pickup Optimizer',
+    domain: 'iot',
+    level: 'intermediate',
+    desc: 'Use sensors to monitor bin fill levels and optimize collection scheduling.',
+    stack: 'ESP32, MQTT, Dashboard',
+    links: [
+      { label: 'ESP32 Getting Started', url: 'https://randomnerdtutorials.com/getting-started-with-esp32/' },
+      { label: 'MQTT Essentials', url: 'https://www.hivemq.com/mqtt-essentials/' }
+    ]
+  },
+  {
+    name: 'Carbon Savings Analytics Dashboard',
+    domain: 'sustainability',
+    level: 'advanced',
+    desc: 'Create analytics that convert reuse events into CO2 and cost saving insights.',
+    stack: 'SQL, Python, BI Dashboard',
+    links: [
+      { label: 'Pandas Data Analysis', url: 'https://pandas.pydata.org/docs/getting_started/intro_tutorials/' },
+      { label: 'Plotly Dash Tutorial', url: 'https://dash.plotly.com/tutorial' }
+    ]
+  },
+  {
+    name: 'Project Recommendation Engine',
+    domain: 'ai',
+    level: 'advanced',
+    desc: 'Recommend project ideas based on student profile, skill level, and available materials.',
+    stack: 'Python, FastAPI, Embeddings',
+    links: [
+      { label: 'FastAPI Tutorial', url: 'https://fastapi.tiangolo.com/tutorial/' },
+      { label: 'Scikit-Learn User Guide', url: 'https://scikit-learn.org/stable/user_guide.html' }
+    ]
+  },
+  {
+    name: 'Circular Supply Chain Tracker',
+    domain: 'fullstack',
+    level: 'intermediate',
+    desc: 'Track push/pull stages of inventory from listing to redistribution.',
+    stack: 'React, Node.js, PostgreSQL',
+    links: [
+      { label: 'React Learn', url: 'https://react.dev/learn' },
+      { label: 'PostgreSQL Tutorial', url: 'https://www.postgresql.org/docs/current/tutorial.html' }
+    ]
+  }
+];
+
+function renderChipFlow(targetId, items) {
+  const root = document.getElementById(targetId);
+  if (!root) return;
+  root.innerHTML = items.map(item => `<span class="flow-chip">${item}</span>`).join('');
+}
+
+function renderCrmSimulation() {
+  const role = document.getElementById('crm-role')?.value || 'customer';
+  const stage = document.getElementById('crm-stage')?.value || 'selection';
+  const data = crmMatrix[stage][role];
+  const root = document.getElementById('crm-output');
+  if (!root) return;
+
+  root.innerHTML = `
+    <div class="output-stack">
+      <div class="output-tile"><strong>Feature</strong><span>${data.feature}</span></div>
+      <div class="output-tile"><strong>Role Action</strong><span>${data.action}</span></div>
+      <div class="output-tile"><strong>Success KPI</strong><span>${data.kpi}</span></div>
+      <div class="output-tile"><strong>Lifecycle Position</strong><span>${data.stage}</span></div>
+    </div>
+  `;
+}
+
+function renderScmSimulation() {
+  const demand = document.getElementById('scm-demand')?.value || 'predictable';
+  const stock = Number(document.getElementById('scm-stock')?.value || 68);
+  const root = document.getElementById('scm-output');
+  if (!root) return;
+
+  let route = 'Push SCM';
+  let reason = 'Forecasted demand allows pre-positioning and planned replenishment.';
+  let intervention = 'Admin: schedule batch restock and pre-approve high-demand materials.';
+
+  if (demand === 'spike' || stock < 45) {
+    route = 'Pull SCM';
+    reason = 'Demand volatility or low stock requires real-time request-driven allocation.';
+    intervention = 'Admin: activate dynamic allocation and prioritize urgent request matching.';
+  }
+  if (demand === 'custom' && stock >= 45 && stock <= 65) {
+    route = 'Hybrid (Push base + Pull override)';
+    reason = 'Mixed pattern benefits from planned baseline with demand-triggered overrides.';
+    intervention = 'Admin: maintain baseline stock while enabling pull-based exceptions.';
+  }
+
+  root.innerHTML = `
+    <div class="output-stack">
+      <div class="output-tile"><strong>Recommended Route</strong><span>${route}</span></div>
+      <div class="output-tile"><strong>Why</strong><span>${reason}</span></div>
+      <div class="output-tile"><strong>Customer View</strong><span>Track stage-wise progress and ETA updates in request timeline.</span></div>
+      <div class="output-tile"><strong>Admin Action</strong><span>${intervention}</span></div>
+    </div>
+  `;
+}
+
+function renderRevenueSimulation() {
+  const orders = Number(document.getElementById('rev-orders')?.value || 0);
+  const aov = Number(document.getElementById('rev-aov')?.value || 0);
+  const fee = Number(document.getElementById('rev-fee')?.value || 0);
+  const root = document.getElementById('revenue-output');
+  if (!root) return;
+
+  const gmv = orders * aov;
+  const platformRevenue = gmv * (fee / 100);
+  const customerSavings = gmv * 0.28;
+
+  root.innerHTML = `
+    <div class="output-stack">
+      <div class="output-tile"><strong>Projected GMV</strong><span>INR ${gmv.toLocaleString('en-IN')}</span></div>
+      <div class="output-tile"><strong>Platform Revenue</strong><span>INR ${Math.round(platformRevenue).toLocaleString('en-IN')}</span></div>
+      <div class="output-tile"><strong>Estimated Customer Savings</strong><span>INR ${Math.round(customerSavings).toLocaleString('en-IN')}</span></div>
+      <div class="output-tile"><strong>Revenue Insight</strong><span>Increase conversion and repeat orders to improve predictable monthly cashflow.</span></div>
+    </div>
+  `;
+}
+
+function renderErpModules() {
+  const root = document.getElementById('erp-grid');
+  if (!root) return;
+  root.innerHTML = erpModules.map((module) => `
+    <article class="erp-card reveal">
+      <h4 class="erp-name">${module.name}</h4>
+      <p class="erp-desc">${module.desc}</p>
+      <span class="stage-proof">Owner: ${module.owner}</span>
+    </article>
+  `).join('');
+  root.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+}
+
+function renderBenchmark(profileKey) {
+  const profile = competitorProfiles[profileKey];
+  const body = document.getElementById('benchmark-body');
+  const summary = document.getElementById('competitor-summary');
+  const colName = document.getElementById('competitor-col-name');
+  if (!profile || !body || !summary || !colName) return;
+
+  summary.textContent = profile.summary;
+  colName.textContent = profile.label;
+  body.innerHTML = profile.rows.map((row) => `
+    <tr>
+      <td>${row[0]}</td>
+      <td class="bench-good">${row[1]}</td>
+      <td class="bench-mid">${row[2]}</td>
+    </tr>
+  `).join('');
+}
+
+function renderProjectRecommendations() {
+  const domain = document.getElementById('proj-domain')?.value || 'all';
+  const level = document.getElementById('proj-level')?.value || 'all';
+  const root = document.getElementById('project-grid');
+  if (!root) return;
+
+  const filtered = studentProjects.filter((project) => {
+    const domainMatch = domain === 'all' || project.domain === domain;
+    const levelMatch = level === 'all' || project.level === level;
+    return domainMatch && levelMatch;
+  });
+
+  if (!filtered.length) {
+    root.innerHTML = '<div class="project-empty">No project matches this filter combination. Try All Levels or another domain.</div>';
+    return;
+  }
+
+  root.innerHTML = filtered.map((project) => `
+    <article class="project-card reveal">
+      <div class="project-meta">
+        <span class="project-pill">${project.domain.toUpperCase()}</span>
+        <span class="project-pill">${project.level.toUpperCase()}</span>
+      </div>
+      <h3 class="project-title">${project.name}</h3>
+      <p class="project-desc">${project.desc}</p>
+      <p class="engine-mini"><strong>Stack:</strong> ${project.stack}</p>
+      <div class="project-links">
+        ${project.links.map((link) => `<a href="${link.url}" target="_blank" rel="noopener noreferrer">${link.label}</a>`).join('')}
+      </div>
+    </article>
+  `).join('');
+
+  root.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+}
+
+function initEngineTabs() {
+  const tabs = document.querySelectorAll('.engine-tab');
+  const panels = document.querySelectorAll('.engine-panel');
+
+  function activate(tabName) {
+    tabs.forEach(tab => {
+      const selected = tab.dataset.tab === tabName;
+      tab.classList.toggle('active', selected);
+      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+    });
+    panels.forEach(panel => {
+      const active = panel.id === `panel-${tabName}`;
+      panel.classList.toggle('active', active);
+      panel.setAttribute('aria-hidden', active ? 'false' : 'true');
+    });
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => activate(tab.dataset.tab));
+    tab.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+      const list = Array.from(tabs);
+      const currentIndex = list.indexOf(tab);
+      const nextIndex = event.key === 'ArrowRight'
+        ? (currentIndex + 1) % list.length
+        : (currentIndex - 1 + list.length) % list.length;
+      list[nextIndex].focus();
+      activate(list[nextIndex].dataset.tab);
+    });
+  });
+}
+
+function initCompetitorSwitch() {
+  const buttons = document.querySelectorAll('[data-competitor]');
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(other => other.classList.remove('active'));
+      btn.classList.add('active');
+      renderBenchmark(btn.dataset.competitor);
+    });
+  });
+}
+
+document.getElementById('crm-apply')?.addEventListener('click', renderCrmSimulation);
+document.getElementById('crm-role')?.addEventListener('change', renderCrmSimulation);
+document.getElementById('crm-stage')?.addEventListener('change', renderCrmSimulation);
+
+document.getElementById('scm-evaluate')?.addEventListener('click', renderScmSimulation);
+document.getElementById('scm-stock')?.addEventListener('input', (event) => {
+  const value = event.target.value;
+  const valueEl = document.getElementById('scm-stock-value');
+  if (valueEl) valueEl.textContent = `${value}%`;
+});
+
+document.getElementById('rev-calc')?.addEventListener('click', renderRevenueSimulation);
+document.getElementById('proj-filter')?.addEventListener('click', renderProjectRecommendations);
+
+renderCrmSimulation();
+renderScmSimulation();
+renderRevenueSimulation();
+renderChipFlow('scm-shared-flow', scmSharedFlow);
+renderErpModules();
+renderBenchmark('marketplace');
+renderProjectRecommendations();
+initEngineTabs();
+initCompetitorSwitch();
+
+// ── 3D tilt on feature cards ──────────────────────────────────────────────────
+document.querySelectorAll('.feat-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    const x = e.clientX - r.left - r.width  / 2;
+    const y = e.clientY - r.top  - r.height / 2;
+    const rx = (-y / r.height) * 14;
+    const ry = ( x / r.width ) * 14;
+    card.style.transform = `perspective(600px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(6px)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = '';
+    card.style.transition = 'transform .5s ease, box-shadow .3s';
+  });
+});
+</script>
+
+</body>
+</html>

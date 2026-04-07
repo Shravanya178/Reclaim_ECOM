@@ -1,0 +1,228 @@
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:dio/dio.dart';
+import 'package:reclaim/features/ecommerce/models/payment.dart';
+
+/// Abstract payment service interface
+abstract class PaymentService {
+  Future<PaymentResult> processPayment(PaymentRequest request);
+  Future<PaymentVerificationResult> verifyPayment(
+    String transactionId,
+    String razorpayPaymentId,
+    String razorpayOrderId,
+    String razorpaySignature,
+  );
+  Future<RefundResult> processRefund(String transactionId, double amount);
+  void dispose();
+}
+
+/// CORRECTED: Razorpay payment service with backend verification
+class RazorpayPaymentService implements PaymentService {
+  late Razorpay _razorpay;
+  PaymentResult? _paymentResult;
+  final Dio _dio = Dio();
+  final String backendVerificationUrl; // e.g., 'https://api.reclaim.com/verify-payment'
+
+  RazorpayPaymentService({required this.backendVerificationUrl}) {
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+  }
+
+  @override
+  Future<PaymentResult> processPayment(PaymentRequest request) async {
+    try {
+      // SECURITY: Only use public key on client
+      // Order ID comes from backend after order creation
+      final options = {
+        'key': 'rzp_test_1DP5mmOlF5G5ag', // Public key only
+        'amount': (request.amount * 100).toInt(), // Amount in paise
+        'name': 'ReClaim',
+        'description': 'Order #${request.orderId}',
+        'order_id': request.orderId, // Pre-created on backend
+        'prefill': {
+          'email': request.email ?? '',
+          'contact': request.phone ?? '',
+          'name': request.name ?? '',
+        },
+        'theme': {
+          'color': '#2E7D32',
+        },
+        'retry': {
+          'enabled': true,
+          'max_count': 2,
+        },
+        'timeout': 900, // 15 minutes
+      };
+
+      _razorpay.open(options);
+
+      // Wait for payment result
+      await Future.delayed(const Duration(seconds: 1));
+      return _paymentResult ?? const PaymentCancelled();
+    } catch (e) {
+      return PaymentFailure(
+        errorMessage: 'Failed to open payment: ${e.toString()}',
+      );
+    }
+  }
+
+  /// CRITICAL SECURITY FIX: Backend verification instead of client-side
+  /// Never trust payment verification from client
+  @override
+  Future<PaymentVerificationResult> verifyPayment(
+    String transactionId,
+    String razorpayPaymentId,
+    String razorpayOrderId,
+    String razorpaySignature,
+  ) async {
+    try {
+      // SECURITY: Verification is performed on BACKEND, not here
+      // This method calls backend API, which uses secret key to verify signature
+      final response = await _dio.post(
+        backendVerificationUrl,
+        data: {
+          'transaction_id': transactionId,
+          'razorpay_payment_id': razorpayPaymentId,
+          'razorpay_order_id': razorpayOrderId,
+          'razorpay_signature': razorpaySignature,
+        },
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${await _getAuthToken()}',
+          },
+        ),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        return PaymentVerificationResult(
+          isVerified: data['verified'] == true,
+          transactionId: data['transaction_id'],
+          message: data['message'] ?? 'Payment verified',
+        );
+      } else {
+        return PaymentVerificationResult(
+          isVerified: false,
+          transactionId: transactionId,
+          message: 'Verification failed: ${response.statusCode}',
+        );
+      }
+    } on DioException catch (e) {
+      return PaymentVerificationResult(
+        isVerified: false,
+        transactionId: transactionId,
+        message: 'Network error during verification: ${e.message}',
+      );
+    } catch (e) {
+      return PaymentVerificationResult(
+        isVerified: false,
+        transactionId: transactionId,
+        message: 'Error verifying payment: ${e.toString()}',
+      );
+    }
+  }
+
+  @override
+  Future<RefundResult> processRefund(
+    String transactionId,
+    double amount,
+  ) async {
+    try {
+      // SECURITY: Refunds also handled via backend with secret key
+      final response = await _dio.post(
+        '$backendVerificationUrl/refund',
+        data: {
+          'transaction_id': transactionId,
+          'amount': amount,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer ${await _getAuthToken()}',
+          },
+        ),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        return RefundResult(
+          success: true,
+          refundId: response.data['refund_id'],
+          message: response.data['message'] ?? 'Refund processed',
+        );
+      } else {
+        return RefundResult(
+          success: false,
+          refundId: null,
+          message: 'Refund failed: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      return RefundResult(
+        success: false,
+        refundId: null,
+        message: 'Error processing refund: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Get authentication token for backend API calls
+  Future<String> _getAuthToken() async {
+    // SECURITY: In production, retrieve from secure storage
+    // This is a placeholder - implement via SecureStorageService
+    return 'YOUR_BEARER_TOKEN'; // Store in SecureStorageService
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    _paymentResult = PaymentSuccess(
+      paymentId: response.paymentId ?? '',
+      orderId: response.orderId ?? '',
+      signature: response.signature ?? '',
+    );
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    _paymentResult = PaymentFailure(
+      errorMessage: response.message ?? 'Unknown error',
+      errorCode: response.code?.toString(),
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    _paymentResult = PaymentFailure(
+      errorMessage: 'External wallet payment not completed',
+    );
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    _dio.close();
+  }
+}
+
+/// Payment verification result from backend
+class PaymentVerificationResult {
+  final bool isVerified;
+  final String transactionId;
+  final String message;
+
+  PaymentVerificationResult({
+    required this.isVerified,
+    required this.transactionId,
+    required this.message,
+  });
+}
+
+/// Refund result
+class RefundResult {
+  final bool success;
+  final String? refundId;
+  final String message;
+
+  RefundResult({
+    required this.success,
+    this.refundId,
+    required this.message,
+  });
+}
