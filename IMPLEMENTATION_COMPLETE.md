@@ -73,6 +73,7 @@
 4. **Configure Authorized Domains (CORS)**
    📍 Firebase Console → Authentication → Settings → Authorized domains
    - [ ] Add localhost:5000 (development)
+   - [ ] Add web-9ywxcpf4x-shravanyas-projects-6ff4fc4e.vercel.app (Vercel)
    - [ ] Add yourdomain.com (production)
 
 #### OPTIONAL - For Production:

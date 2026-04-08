@@ -20,18 +20,11 @@ class FirebaseAuthService {
 
   /// Initialize GoogleSignIn with platform-specific configuration
   GoogleSignIn _initializeGoogleSignIn() {
-    if (kIsWeb) {
-      // Web requires explicit client ID
-      return GoogleSignIn(
-        clientId: '502383251544-35ficv7cpbklpeh0631jpvvao6evgg8s.apps.googleusercontent.com',
-        scopes: ['email', 'profile'],
-      );
-    } else {
-      // Mobile platforms use android/iOS configuration
-      return GoogleSignIn(
-        scopes: ['email', 'profile'],
-      );
-    }
+    // Mobile platforms use android/iOS configuration.
+    // Web auth is handled via FirebaseAuth.signInWithPopup in signInWithGoogle.
+    return GoogleSignIn(
+      scopes: ['email', 'profile'],
+    );
   }
 
   /// Get current user
@@ -114,6 +107,35 @@ class FirebaseAuthService {
   /// Returns user if successful, throws exception on failure
   Future<firebase_user.User?> signInWithGoogle() async {
     try {
+      if (kIsWeb) {
+        final provider = GoogleAuthProvider()
+          ..addScope('email')
+          ..addScope('profile');
+
+        final userCredential = await _firebaseAuth.signInWithPopup(provider);
+        final user = userCredential.user;
+
+        if (user != null) {
+          await _createSupabaseProfile(
+            userId: user.uid,
+            email: user.email ?? '',
+            fullName: user.displayName ?? 'User',
+            photoUrl: user.photoURL,
+          );
+
+          final token = await user.getIdToken();
+          if (token != null && token.isNotEmpty) {
+            await SecureTokenStorage.saveToken(
+              token: token,
+              refreshToken: user.refreshToken,
+              userId: user.uid,
+            );
+          }
+        }
+
+        return user;
+      }
+
       // Check if already signed in
       await _googleSignIn.signOut();
 

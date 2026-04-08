@@ -33,6 +33,7 @@ Add your domain:
 ```
 localhost:5000  (for local development)
 localhost:8080  (alternative port)
+web-9ywxcpf4x-shravanyas-projects-6ff4fc4e.vercel.app  (Vercel deployment)
 ```
 
 For production, add your actual domain:

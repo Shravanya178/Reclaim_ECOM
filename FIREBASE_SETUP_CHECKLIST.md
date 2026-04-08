@@ -191,6 +191,7 @@ A quick reference checklist for Firebase configuration. Follow in order.
 
 - [ ] **Add Authorized Domains** (for web)
   - [ ] localhost:5000 (for testing)
+  - [ ] web-9ywxcpf4x-shravanyas-projects-6ff4fc4e.vercel.app (Vercel deployment)
   - [ ] Production domain (e.g., reclaim.com)
 
 ---

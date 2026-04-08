@@ -233,6 +233,7 @@ This generates the file automatically based on your Firebase project.
 
 Firebase Console → Authentication → Settings → Authorized domains:
 - Add: `localhost:5000` (for local testing)
+- Add: `web-9ywxcpf4x-shravanyas-projects-6ff4fc4e.vercel.app` (Vercel deployment)
 - Add: Your production domain (e.g., `reclaim.com`)
 
 ### 8.2 For Mobile App Link
