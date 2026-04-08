@@ -7,6 +7,7 @@ import 'package:reclaim/core/theme/app_theme.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/web_navbar.dart';
+import 'package:reclaim/features/dashboard/presentation/widgets/admin_orchestrator_section.dart';
 import 'package:reclaim/features/dashboard/widgets/most_requested_materials_chart.dart';
 import 'package:reclaim/features/dashboard/widgets/supply_demand_table.dart';
 
@@ -292,6 +293,8 @@ class _OverviewTab extends StatelessWidget {
               const SizedBox(width: 20),
               Expanded(flex: 2, child: _activityFeed(context)),
             ]),
+            const SizedBox(height: 28),
+            const AdminOrchestratorSection(),
             const SizedBox(height: 32),
             WebFooter(),
           ]),

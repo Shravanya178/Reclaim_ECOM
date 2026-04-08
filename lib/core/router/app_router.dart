@@ -11,6 +11,7 @@ import 'package:reclaim/core/models/user.dart';
 
 // Dashboard screens
 import 'package:reclaim/features/dashboard/presentation/screens/student_dashboard_screen.dart';
+import 'package:reclaim/features/dashboard/presentation/screens/student_projects_screen.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/lab_dashboard_screen.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/admin_dashboard_screen.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/scm_dashboard_screen.dart';
@@ -161,8 +162,16 @@ GoRouter appRouter(AppRouterRef ref) {
         name: 'business-engine',
         builder: (context, state) {
           final role = state.uri.queryParameters['role'] ?? 'customer';
+          if (role == 'customer') {
+            return const StudentProjectsScreen();
+          }
           return BusinessEngineScreen(initialRole: role);
         },
+      ),
+      GoRoute(
+        path: '/student-projects',
+        name: 'student-projects',
+        builder: (context, state) => const StudentProjectsScreen(),
       ),
       GoRoute(
         path: '/flow-timeline',

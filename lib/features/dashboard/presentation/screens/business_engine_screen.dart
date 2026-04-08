@@ -68,7 +68,6 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
     'CRM',
     'SCM',
     'Revenue',
-    'ERP Modules',
     'Competitors',
     'Projects',
   ];
@@ -171,7 +170,7 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
 
   static const Map<String, List<String>> _competitorWeakness = {
     'marketplace': [
-      'Weak lifecycle depth beyond listing and buying',
+      'Weak lifecycle depth beyond intake and fulfillment',
       'No push/pull SCM planning layer',
       'Limited institutional ERP workflow support',
     ],
@@ -203,7 +202,7 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
       title: 'Campus Reuse Marketplace',
       domain: 'fullstack',
       level: 'beginner',
-      description: 'Build a reuse marketplace with listing, cart, and checkout.',
+      description: 'Build a reuse flow with intake, request queue, and fulfillment tracking.',
       stack: 'Flutter, Firebase, Supabase',
       tutorials: [
         _TutorialLink('Flutter codelabs', 'https://docs.flutter.dev/codelabs'),
@@ -408,7 +407,6 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
           _buildCrmTab(),
           _buildScmTab(),
           _buildRevenueTab(),
-          _buildErpTab(),
           _buildCompetitorTab(),
           _buildProjectsTab(),
         ],
@@ -575,94 +573,6 @@ class _BusinessEngineScreenState extends State<BusinessEngineScreen>
           _actionCard(
             title: 'Explainability',
             content: 'Revenue is modeled as Orders x AOV x Fee%. Repeat contribution is estimated from repeat-rate share of platform revenue.',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErpTab() {
-    final serviceLevel = _clampDouble(_stockHealth - (_leadTimeDays * 1.8), 40, 99.9);
-    final orderToCashDays = _clampDouble(_leadTimeDays + 1.5, 1, 20);
-    final repeatHealth = _clampDouble(_repeatRate, 1, 90);
-
-    final modules = [
-      _ErpModule(
-        name: 'Procurement & Vendor Planning',
-        objective: 'Track sourcing reliability, inbound cycle time, and replenishment quality.',
-        kpi: 'Lead Time: ${_leadTimeDays.toStringAsFixed(1)} days',
-        route: '/scm-dashboard',
-      ),
-      _ErpModule(
-        name: 'Inventory & Warehouse',
-        objective: 'Maintain stock health, monitor low-stock pressure, and reduce stockouts.',
-        kpi: 'Service Level: ${serviceLevel.toStringAsFixed(1)}%',
-        route: '/lab-dashboard/inventory',
-      ),
-      _ErpModule(
-        name: 'Order Management (O2C)',
-        objective: 'Track request-to-order-to-payment conversion and closure speed.',
-        kpi: 'Order-to-Cash: ${orderToCashDays.toStringAsFixed(1)} days',
-        route: '/orders',
-      ),
-      _ErpModule(
-        name: 'CRM & Customer Success',
-        objective: 'Run lifecycle campaigns, support SLAs, and loyalty outcomes.',
-        kpi: 'Repeat Health: ${repeatHealth.toStringAsFixed(1)}%',
-        route: '/notifications',
-      ),
-      _ErpModule(
-        name: 'Finance & Revenue Control',
-        objective: 'Track GMV, platform revenue, and repeat contribution across cohorts.',
-        kpi: 'Use Revenue tab KPIs as monthly close baseline',
-        route: '/ecom-admin',
-      ),
-    ];
-
-    return _panel(
-      title: 'ERP Modules Tracker',
-      subtitle: 'Map core ERP modules to live routes in your app so CRM, SCM, and finance execution stays connected.',
-      child: Column(
-        children: [
-          _statsGrid([
-            _tileStat('Modules Enabled', '${modules.length}'),
-            _tileStat('Primary Focus', _roleLens == 'admin' ? 'Operational control' : 'Experience transparency'),
-            _tileStat('CRM Stage', _crmStageLabel[_crmStage] ?? 'Selection'),
-            _tileStat('SCM Strategy', _scmModeLabel[_scmMode] ?? 'Hybrid'),
-          ]),
-          const SizedBox(height: 12),
-          ...modules.map(_erpModuleCard),
-        ],
-      ),
-    );
-  }
-
-  Widget _erpModuleCard(_ErpModule module) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FCF9),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE5EFE8)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(module.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 5),
-          Text(module.objective, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.45)),
-          const SizedBox(height: 8),
-          Text(module.kpi, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.primaryDark)),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: () => context.go(module.route),
-              icon: const Icon(Icons.open_in_new, size: 16),
-              label: const Text('Open Module'),
-            ),
           ),
         ],
       ),
@@ -1148,20 +1058,6 @@ class _TutorialLink {
   final String url;
 
   const _TutorialLink(this.label, this.url);
-}
-
-class _ErpModule {
-  final String name;
-  final String objective;
-  final String kpi;
-  final String route;
-
-  const _ErpModule({
-    required this.name,
-    required this.objective,
-    required this.kpi,
-    required this.route,
-  });
 }
 
 class _EmptyHint extends StatelessWidget {

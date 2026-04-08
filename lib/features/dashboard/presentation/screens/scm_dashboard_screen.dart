@@ -66,7 +66,7 @@ class _ScmDashboardScreenState extends ConsumerState<ScmDashboardScreen> {
   // ── BUILD ──────────────────────────────────────────────────────────────────
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final isMobile = Breakpoints.isMobile(context);
     return ResponsiveScaffold(
       currentRoute: '/scm-dashboard',

@@ -39,7 +39,7 @@ class StudentDashboardScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.auto_graph_outlined),
-            onPressed: () => context.go('/business-engine?role=customer'),
+            onPressed: () => context.go('/student-projects'),
           ),
           IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
           const CircleAvatar(radius: 16, backgroundColor: Colors.white24,
@@ -119,7 +119,7 @@ class StudentDashboardScreen extends ConsumerWidget {
             Wrap(spacing: 14, runSpacing: 10, children: [
               _heroCta(context, 'Browse Shop', Icons.store_outlined, () => context.go('/shop')),
               _heroCta(context, 'My Inventory', Icons.inventory_2_outlined, () => context.go('/inventory'), outline: true),
-              _heroCta(context, 'Business Engine', Icons.auto_graph_outlined, () => context.go('/business-engine?role=customer'), outline: true),
+              _heroCta(context, 'Projects Hub', Icons.auto_graph_outlined, () => context.go('/student-projects'), outline: true),
             ]),
           ])),
           const SizedBox(width: 48),

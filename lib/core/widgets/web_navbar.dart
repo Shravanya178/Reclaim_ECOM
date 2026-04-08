@@ -129,11 +129,11 @@ class WebNavBar extends StatelessWidget implements PreferredSizeWidget {
                                 onTap: () => context.go('/rankings'),
                               ),
                               _NavLink(
-                                label: 'Business',
+                                label: 'Projects',
                                 icon: Icons.auto_graph_outlined,
-                                isActive: currentRoute == '/business-engine',
+                                isActive: currentRoute == '/student-projects',
                                 compact: compactLinks,
-                                onTap: () => context.go('/business-engine?role=customer'),
+                                onTap: () => context.go('/student-projects'),
                               ),
                             ],
                           ),
@@ -254,7 +254,7 @@ class WebNavBar extends StatelessWidget implements PreferredSizeWidget {
                         context.go('/settings');
                         break;
                       case 'business':
-                        context.go('/business-engine?role=customer');
+                        context.go('/student-projects');
                         break;
                       case 'admin':
                         context.go('/admin-dashboard');
@@ -299,7 +299,7 @@ class WebNavBar extends StatelessWidget implements PreferredSizeWidget {
                       value: 'business',
                       child: ListTile(
                         leading: Icon(Icons.auto_graph_outlined, size: 20),
-                        title: Text('Business Engine'),
+                        title: Text('Projects Hub'),
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                       ),
