@@ -668,7 +668,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
           spacing: 10,
           runSpacing: 10,
           children: const [
-            _KpiCard(title: 'Total Revenue', value: 'Rs 38.4M', change: '+13%'),
+            _KpiCard(title: 'Total Revenue', value: 'Rs 384.0L', change: '+13%'),
             _KpiCard(title: 'Active Material Batches', value: '1,284', change: '+8%'),
             _KpiCard(title: 'New Users (Month)', value: '432', change: '+16%'),
             _KpiCard(title: 'Avg Deal Value', value: 'Rs 1.82L', change: '+5%'),
@@ -972,9 +972,9 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
   }
 
   Widget _buildRevenueTab() {
-    final tunedRevenue = (50.4 * _revenueFactor).toStringAsFixed(1);
-    final tunedCommission = (6.4 * _revenueFactor).toStringAsFixed(1);
-    final tunedSettlement = (42.8 * _revenueFactor).toStringAsFixed(1);
+    final tunedRevenueL = (504 * _revenueFactor).toStringAsFixed(1);
+    final tunedCommissionL = (64 * _revenueFactor).toStringAsFixed(1);
+    final tunedSettlementL = (428 * _revenueFactor).toStringAsFixed(1);
     const commissionVsBuilder = [
       ('Copper Wire', 24, 176),
       ('PCB Kit', 19, 142),
@@ -1014,10 +1014,10 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
           spacing: 10,
           runSpacing: 10,
           children: [
-            _KpiCard(title: 'Website Commission', value: 'Rs ${tunedCommission}M', change: '+12%'),
-            _KpiCard(title: 'Supplier Settlement', value: 'Rs ${tunedSettlement}M', change: '+9%'),
-            _KpiCard(title: 'Spotlight Ad Revenue', value: 'Rs 1.2M', change: '+17%'),
-            _KpiCard(title: 'Total Revenue Tracked', value: 'Rs ${tunedRevenue}M', change: '+11%'),
+            _KpiCard(title: 'Website Commission', value: 'Rs ${tunedCommissionL}L', change: '+12%'),
+            _KpiCard(title: 'Supplier Settlement', value: 'Rs ${tunedSettlementL}L', change: '+9%'),
+            _KpiCard(title: 'Spotlight Ad Revenue', value: 'Rs 1200K', change: '+17%'),
+            _KpiCard(title: 'Total Revenue Tracked', value: 'Rs ${tunedRevenueL}L', change: '+11%'),
           ],
         ),
         const SizedBox(height: 10),
@@ -1167,12 +1167,12 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
   Widget _buildMarketingTab() {
     final paidLeads = 1263 + _marketingLeadLift;
     const creatives = [
-      ('Campus Resale Sprint', 'Video', '120k', '7.4k', '310'),
-      ('Zero Waste Drive', 'Carousel', '98k', '5.6k', '274'),
-      ('Reclaim Rewards', 'Static', '84k', '4.9k', '193'),
-      ('Smart Supplier Weekend', 'Video', '76k', '4.1k', '182'),
-      ('Verified Deals Push', 'Carousel', '64k', '3.7k', '141'),
-      ('Student Referral Week', 'Static', '58k', '3.5k', '138'),
+      ('Campus Resale Sprint', 'Video', '120k', '7.4k', '310', 'assets/ads/WhatsApp Image 2026-04-08 at 06.35.30.jpeg'),
+      ('Zero Waste Drive', 'Carousel', '98k', '5.6k', '274', 'assets/ads/WhatsApp Image 2026-04-08 at 06.35.41.jpeg'),
+      ('Reclaim Rewards', 'Static', '84k', '4.9k', '193', 'assets/ads/WhatsApp Image 2026-04-08 at 06.35.57.jpeg'),
+      ('Smart Supplier Weekend', 'Video', '76k', '4.1k', '182', 'assets/ads/WhatsApp Image 2026-04-08 at 06.36.17.jpeg'),
+      ('Verified Deals Push', 'Carousel', '64k', '3.7k', '141', 'assets/ads/WhatsApp Image 2026-04-08 at 06.38.22.jpeg'),
+      ('Student Referral Week', 'Static', '58k', '3.5k', '138', 'assets/ads/WhatsApp Image 2026-04-08 at 06.40.05.jpeg'),
     ];
 
     const framework = [
@@ -1231,17 +1231,26 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                height: 78,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFFE6F4EA), Color(0xFFD7EAF8)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.asset(
+                                  c.$6,
+                                  height: 78,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    height: 78,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFE6F4EA), Color(0xFFD7EAF8)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                    ),
+                                    child: const Center(child: Icon(Icons.image_outlined, color: AppTheme.primaryGreen)),
                                   ),
                                 ),
-                                child: const Center(child: Icon(Icons.image_outlined, color: AppTheme.primaryGreen)),
                               ),
                               const SizedBox(height: 6),
                               Text(c.$1, style: const TextStyle(fontWeight: FontWeight.w700)),
