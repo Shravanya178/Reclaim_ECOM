@@ -7,29 +7,58 @@ import 'package:firebase_auth/firebase_auth.dart';
 class SecureErrorHandler {
   /// Convert any error to a user-friendly message
   static String getUserFriendlyMessage(dynamic error) {
+    final rawMessage = error.toString().toLowerCase();
+
     // Firebase Auth errors
     if (error is FirebaseAuthException) {
       return _handleFirebaseAuthError(error);
     }
 
+    // Common Google/Firebase web auth issues
+    if (rawMessage.contains('redirect_uri_mismatch')) {
+      return 'Google Sign-In configuration mismatch. Please check Firebase authorized domains and Google OAuth redirect URI.';
+    }
+
+    if (rawMessage.contains('unauthorized-domain') || rawMessage.contains('auth/unauthorized-domain')) {
+      return 'This domain is not authorized for Google Sign-In. Add this domain in Firebase Authentication -> Authorized domains.';
+    }
+
+    if (rawMessage.contains('popup_blocked') || rawMessage.contains('popup blocked')) {
+      return 'Google Sign-In popup was blocked by the browser. Allow popups and try again.';
+    }
+
+    if (rawMessage.contains('popup_closed_by_user')) {
+      return 'Google Sign-In was cancelled.';
+    }
+
+    if (rawMessage.contains('operation-not-allowed')) {
+      return 'Google Sign-In is not enabled in Firebase Authentication.';
+    }
+
     // Network errors
-    if (error.toString().toLowerCase().contains('socket')) {
+    if (rawMessage.contains('socket')) {
       return 'Network error. Please check your internet connection.';
     }
 
     // Timeout errors
-    if (error.toString().toLowerCase().contains('timeout')) {
+    if (rawMessage.contains('timeout')) {
       return 'Request timed out. Please try again.';
     }
 
     // Invalid email errors
-    if (error.toString().toLowerCase().contains('email')) {
+    if (rawMessage.contains('email')) {
       return 'Please check your email address.';
     }
 
     // Rate limiting
-    if (error.toString().toLowerCase().contains('too many')) {
+    if (rawMessage.contains('too many')) {
       return 'Too many attempts. Please try again later.';
+    }
+
+    // Preserve safe exception text when available instead of always showing a generic fallback.
+    final message = error.toString().replaceFirst('Exception: ', '').trim();
+    if (message.isNotEmpty && isErrorSafe(message)) {
+      return message;
     }
 
     // Default fallback
