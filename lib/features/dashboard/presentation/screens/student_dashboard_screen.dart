@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:reclaim/core/services/customer_voice_service.dart';
 import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
@@ -75,6 +76,8 @@ class StudentDashboardScreen extends ConsumerWidget {
                 const Text('My Recent Materials', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 18),
                 _materialsGrid(context),
+                const SizedBox(height: 24),
+                const _CustomerVoiceFlowSection(),
               ])),
               const SizedBox(width: 28),
               // Right sidebar
@@ -334,6 +337,8 @@ class StudentDashboardScreen extends ConsumerWidget {
         const Text('Recent Activity', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
         const SizedBox(height: 14),
         _activityFeed(),
+        const SizedBox(height: 18),
+        const _CustomerVoiceFlowSection(),
       ])),
     ]));
   }
@@ -350,4 +355,327 @@ class StudentDashboardScreen extends ConsumerWidget {
       ]),
     ),
   );
+}
+
+class _CustomerVoiceFlowSection extends StatefulWidget {
+  const _CustomerVoiceFlowSection();
+
+  @override
+  State<_CustomerVoiceFlowSection> createState() => _CustomerVoiceFlowSectionState();
+}
+
+class _CustomerVoiceSnapshot {
+  final int feedbackCount;
+  final int complaintCount;
+  final Map<String, int> feedbackBuckets;
+  final Map<String, int> complaintBuckets;
+
+  const _CustomerVoiceSnapshot({
+    required this.feedbackCount,
+    required this.complaintCount,
+    required this.feedbackBuckets,
+    required this.complaintBuckets,
+  });
+}
+
+class _CustomerVoiceFlowSectionState extends State<_CustomerVoiceFlowSection> {
+  final _customerCtrl = TextEditingController(text: 'Demo Student');
+  final _feedbackCtrl = TextEditingController();
+  final _complaintCtrl = TextEditingController();
+
+  String _material = 'Copper Wire Batch CW-14';
+  int _rating = 5;
+  String _severity = 'High';
+  int _reloadKey = 0;
+
+  static const List<String> _materials = [
+    'Copper Wire Batch CW-14',
+    'PCB Salvage Kit PK-22',
+    'Glassware Bundle GB-09',
+    'Arduino Uno Rev3',
+    'Copper Wire Spool 1kg',
+    'LED Strip 5m RGB',
+    'Borosilicate Flask 500ml',
+  ];
+
+  @override
+  void dispose() {
+    _customerCtrl.dispose();
+    _feedbackCtrl.dispose();
+    _complaintCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<_CustomerVoiceSnapshot> _loadSnapshot() async {
+    final svc = CustomerVoiceService.instance;
+    await svc.ensureSeeded();
+    final feedback = await svc.getEntriesByType(VoiceType.feedback);
+    final complaints = await svc.getEntriesByType(VoiceType.complaint);
+    final feedbackBuckets = await svc.getThreeSectionCounts(VoiceType.feedback);
+    final complaintBuckets = await svc.getThreeSectionCounts(VoiceType.complaint);
+
+    return _CustomerVoiceSnapshot(
+      feedbackCount: feedback.length,
+      complaintCount: complaints.length,
+      feedbackBuckets: feedbackBuckets,
+      complaintBuckets: complaintBuckets,
+    );
+  }
+
+  Future<void> _submitFeedback() async {
+    final message = _feedbackCtrl.text.trim();
+    if (message.isEmpty) {
+      return;
+    }
+    await CustomerVoiceService.instance.submitFeedback(
+      customer: _customerCtrl.text.trim().isEmpty ? 'Demo Student' : _customerCtrl.text.trim(),
+      material: _material,
+      message: message,
+      rating: _rating,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _feedbackCtrl.clear();
+      _reloadKey++;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Feedback submitted. It is now visible in admin orchestrator flow.')),
+    );
+  }
+
+  Future<void> _submitComplaint() async {
+    final message = _complaintCtrl.text.trim();
+    if (message.isEmpty) {
+      return;
+    }
+    await CustomerVoiceService.instance.submitComplaint(
+      customer: _customerCtrl.text.trim().isEmpty ? 'Demo Student' : _customerCtrl.text.trim(),
+      material: _material,
+      message: message,
+      severity: _severity,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _complaintCtrl.clear();
+      _reloadKey++;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Complaint submitted. Admin side now receives this issue.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5EFE8)),
+      ),
+      child: FutureBuilder<_CustomerVoiceSnapshot>(
+        key: ValueKey(_reloadKey),
+        future: _loadSnapshot(),
+        builder: (context, snapshot) {
+          final data = snapshot.data;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Feedback + Complaint Flow Demo',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Create one feedback and one complaint here. Admin orchestrator receives it, and product-level actions can be applied.',
+                style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _statChip('Total Feedback', '${data?.feedbackCount ?? 0}+'),
+                  _statChip('Total Complaints', '${data?.complaintCount ?? 0}+'),
+                  _statChip('Combined Voice', '${(data?.feedbackCount ?? 0) + (data?.complaintCount ?? 0)}+'),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _customerCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Your Name',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: _material,
+                isDense: true,
+                decoration: const InputDecoration(
+                  labelText: 'Material',
+                  border: OutlineInputBorder(),
+                ),
+                items: _materials
+                    .map((m) => DropdownMenuItem<String>(value: m, child: Text(m)))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _material = v);
+                },
+              ),
+              const SizedBox(height: 14),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _formCard(
+                      title: 'Material Feedback',
+                      child: Column(
+                        children: [
+                          DropdownButtonFormField<int>(
+                            value: _rating,
+                            decoration: const InputDecoration(
+                              labelText: 'Rating',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items: const [1, 2, 3, 4, 5]
+                                .map((r) => DropdownMenuItem(value: r, child: Text('$r / 5')))
+                                .toList(),
+                            onChanged: (v) {
+                              if (v == null) return;
+                              setState(() => _rating = v);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _feedbackCtrl,
+                            minLines: 2,
+                            maxLines: 3,
+                            decoration: const InputDecoration(
+                              hintText: 'Write feedback for this material',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: _submitFeedback,
+                              child: const Text('Submit Feedback'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _formCard(
+                      title: 'Complaint Box',
+                      child: Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: _severity,
+                            decoration: const InputDecoration(
+                              labelText: 'Severity',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items: const ['Critical', 'High', 'Moderate']
+                                .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                                .toList(),
+                            onChanged: (v) {
+                              if (v == null) return;
+                              setState(() => _severity = v);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _complaintCtrl,
+                            minLines: 2,
+                            maxLines: 3,
+                            decoration: const InputDecoration(
+                              hintText: 'Describe your complaint',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.tonal(
+                              onPressed: _submitComplaint,
+                              child: const Text('Submit Complaint'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _bucketRow('Feedback Auto Sections', data?.feedbackBuckets ?? const {}),
+              const SizedBox(height: 8),
+              _bucketRow('Complaint Auto Sections', data?.complaintBuckets ?? const {}),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _formCard({required String title, required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FCF9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE5EFE8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _bucketRow(String title, Map<String, int> buckets) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+        ...buckets.entries.map((e) => _statChip(e.key, '${e.value}')),
+      ],
+    );
+  }
+
+  Widget _statChip(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF3ED),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFD4E6DA)),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: AppTheme.primaryDark,
+        ),
+      ),
+    );
+  }
 }

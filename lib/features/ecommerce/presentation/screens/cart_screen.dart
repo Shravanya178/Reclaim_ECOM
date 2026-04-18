@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:reclaim/core/theme/app_theme.dart';
+import 'package:reclaim/core/widgets/ecommerce_backdrop.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
 import 'package:reclaim/core/widgets/web_navbar.dart';
@@ -29,21 +30,36 @@ class CartScreen extends ConsumerWidget {
               title: Text('Cart ($cartCount)', style: const TextStyle(fontWeight: FontWeight.w700)),
             )
           : null,
-      body: cartItems.isEmpty ? _buildEmpty(context, isMobile) : _buildCart(context, ref, cartItems, isMobile),
+      body: EcommerceBackdrop(
+        imageUrl:
+            'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1800&q=80',
+        child: cartItems.isEmpty
+            ? _buildEmpty(context, isMobile)
+            : _buildCart(context, ref, cartItems, isMobile),
+      ),
     );
   }
 
   Widget _buildEmpty(BuildContext context, bool isMobile) => Center(
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+    child: Container(
+      constraints: const BoxConstraints(maxWidth: 520),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xCA0F261D),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0x334FC28B)),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(
         width: 120, height: 120,
-        decoration: BoxDecoration(color: AppTheme.primarySurface, shape: BoxShape.circle),
+        decoration: BoxDecoration(color: AppTheme.primarySurface.withValues(alpha: 0.92), shape: BoxShape.circle),
         child: const Icon(Icons.shopping_bag_outlined, size: 56, color: AppTheme.primaryLight)),
       const SizedBox(height: 24),
-      const Text('Your cart is empty', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+      const Text('Your cart is empty', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
       const SizedBox(height: 8),
       Text('Explore sustainable materials and add them to your cart.',
-        style: TextStyle(fontSize: 14, color: Colors.grey.shade500), textAlign: TextAlign.center),
+        style: TextStyle(fontSize: 14, color: Colors.green.shade100), textAlign: TextAlign.center),
       const SizedBox(height: 28),
       ElevatedButton.icon(
         onPressed: () => context.go('/shop'),
@@ -55,6 +71,7 @@ class CartScreen extends ConsumerWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
       ),
     ]),
+    ),
   );
 
   Widget _buildCart(BuildContext context, WidgetRef ref, List<LocalCartItem> items, bool isMobile) {
@@ -143,7 +160,7 @@ class CartScreen extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE5EFE8)),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 4))]),
       padding: const EdgeInsets.all(24),
@@ -237,7 +254,7 @@ class _CartItemTileState extends ConsumerState<_CartItemTile> {
       duration: const Duration(milliseconds: 180),
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _hovered ? AppTheme.primaryLight : const Color(0xFFE5EFE8)),
         boxShadow: [BoxShadow(
           color: _hovered ? AppTheme.primaryGreen.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.04),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,11 +7,25 @@ import 'package:reclaim/core/theme/app_theme.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/web_navbar.dart';
-import 'package:reclaim/features/dashboard/presentation/widgets/admin_orchestrator_section.dart';
 import 'package:reclaim/features/dashboard/widgets/most_requested_materials_chart.dart';
 import 'package:reclaim/features/dashboard/widgets/supply_demand_table.dart';
 
-// ─── Data Models ─────────────────────────────────────────────────────────────
+const Color _luxBg0 = Color(0xFF718F6C);
+const Color _luxBg1 = Color(0xFF2F5D3A);
+const Color _luxSurface = Color(0xFFF3F1E7);
+const Color _luxSurfaceAlt = Color(0xFFF3F1E7);
+const Color _luxBorder = Color(0xFF2F5D3A);
+const Color _luxAccent = Color(0xFF2F5D3A);
+const Color _luxAccentSoft = Color(0xFF718F6C);
+const Color _luxText = Color(0xFF2F5D3A);
+const Color _luxMuted = Color(0xFF718F6C);
+const Color _luxHint = Color(0xFF718F6C);
+const Color _infA = Color(0xFF2F5D3A);
+const Color _infB = Color(0xFFB27A3B);
+const Color _infC = Color(0xFF8B3A2E);
+const Color _infD = Color(0xFF6E4B7E);
+
+// --- Data Models -------------------------------------------------------------
 class _Stat {
   final String label, value, change;
   final IconData icon;
@@ -38,7 +52,7 @@ class _Zone {
   const _Zone(this.name, this.building, this.contact, this.items, this.status);
 }
 
-// ─── Main Screen ─────────────────────────────────────────────────────────────
+// --- Main Screen -------------------------------------------------------------
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
   @override
@@ -53,10 +67,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
   FlowPlaybook? _playbook;
 
   static const _stats = [
-    _Stat('Total Materials', '3,420', '+12%', Icons.inventory_2_outlined, Color(0xFF2D6A4F)),
-    _Stat('Active Users', '284', '+8%', Icons.people_outline, Color(0xFF1565C0)),
-    _Stat('CO₂ Saved (kg)', '18,750', '+22%', Icons.eco_outlined, Color(0xFF2E7D32)),
-    _Stat('Pending Requests', '47', '-5%', Icons.assignment_outlined, Color(0xFFE65100)),
+    _Stat('Total Materials', '3,420', '+12%', Icons.inventory_2_outlined, _luxText),
+    _Stat('Active Users', '284', '+8%', Icons.people_outline, _luxText),
+    _Stat('CO2 Saved (kg)', '18,750', '+22%', Icons.eco_outlined, _luxText),
+    _Stat('Pending Requests', '47', '-5%', Icons.assignment_outlined, _luxMuted),
   ];
 
   static final _materials = [
@@ -80,9 +94,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
   ];
 
   static final _zones = [
-    const _Zone('Lab A – Chemistry', 'Science Block', 'Dr. Meera Patel', 320, 'Active'),
-    const _Zone('Lab B – Physics', 'Tech Block', 'Prof. Arvind Nair', 180, 'Active'),
-    const _Zone('Lab C – Biology', 'Science Block', 'Dr. Priya Singh', 210, 'Maintenance'),
+    const _Zone('Lab A - Chemistry', 'Science Block', 'Dr. Meera Patel', 320, 'Active'),
+    const _Zone('Lab B - Physics', 'Tech Block', 'Prof. Arvind Nair', 180, 'Active'),
+    const _Zone('Lab C - Biology', 'Science Block', 'Dr. Priya Singh', 210, 'Maintenance'),
     const _Zone('ECE Lab', 'Engineering Block', 'Prof. Ramesh Kumar', 145, 'Active'),
     const _Zone('Central Store', 'Admin Block', 'Mr. Suresh', 865, 'Active'),
   ];
@@ -114,9 +128,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
       currentRoute: '/admin-dashboard',
       cartItemCount: 0,
       mobileAppBar: AppBar(
-        backgroundColor: AppTheme.primaryGreen,
-        title: const Text('Admin Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: _luxSurface,
+        title: const Text('Admin Dashboard', style: TextStyle(color: _luxText, fontWeight: FontWeight.w700)),
+        iconTheme: const IconThemeData(color: _luxText),
         actions: [
           IconButton(
             icon: const Icon(Icons.auto_graph_outlined),
@@ -126,9 +140,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
             icon: const Icon(Icons.timeline_outlined),
             onPressed: () => context.go('/flow-timeline'),
           ),
+          IconButton(
+            icon: const Icon(Icons.admin_panel_settings_outlined),
+            onPressed: () => context.go('/admin-orchestrator'),
+          ),
           IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
-          const CircleAvatar(radius: 16, backgroundColor: Colors.white24,
-            child: Icon(Icons.person, color: Colors.white, size: 18)),
+          const CircleAvatar(radius: 16, backgroundColor: _luxMuted,
+            child: Icon(Icons.person, color: _luxText, size: 18)),
           const SizedBox(width: 8),
         ],
       ),
@@ -136,21 +154,30 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
         children: [
           _buildTabBar(isMobile),
           Expanded(
-            child: TabBarView(controller: _tab, children: [
-              _OverviewTab(
-                stats: _stats,
-                materials: _materials,
-                zones: _zones,
-                isMobile: isMobile,
-                playbook: _playbook,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [_luxBg0, _luxBg1],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
-              _MaterialsTab(materials: _materials, search: _materialSearch,
-                onSearch: (v) => setState(() => _materialSearch = v)),
-              _ZonesTab(zones: _zones, isMobile: isMobile),
-              _UsersTab(users: _users, search: _userSearch,
-                onSearch: (v) => setState(() => _userSearch = v)),
-              const _AnalyticsTab(),
-            ]),
+              child: TabBarView(controller: _tab, children: [
+                _OverviewTab(
+                  stats: _stats,
+                  materials: _materials,
+                  zones: _zones,
+                  isMobile: isMobile,
+                  playbook: _playbook,
+                ),
+                _MaterialsTab(materials: _materials, search: _materialSearch,
+                  onSearch: (v) => setState(() => _materialSearch = v)),
+                _ZonesTab(zones: _zones, isMobile: isMobile),
+                _UsersTab(users: _users, search: _userSearch,
+                  onSearch: (v) => setState(() => _userSearch = v)),
+                const _AnalyticsTab(),
+              ]),
+            ),
           ),
         ],
       ),
@@ -159,17 +186,21 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
 
   Widget _buildTabBar(bool isMobile) => Container(
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: _luxSurface,
       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
     ),
     child: TabBar(
       controller: _tab,
-      labelColor: AppTheme.primaryGreen,
-      unselectedLabelColor: AppTheme.textSecondary,
-      indicatorColor: AppTheme.primaryGreen,
-      indicatorWeight: 3,
-      labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+      labelColor: _luxText,
+      unselectedLabelColor: _luxMuted,
+      indicator: BoxDecoration(
+        color: _luxSurfaceAlt,
+        border: const Border(
+          bottom: BorderSide(color: _luxAccent, width: 3),
+        ),
+      ),
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, letterSpacing: 0.2),
+      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
       isScrollable: isMobile,
       tabs: const [
         Tab(icon: Icon(Icons.dashboard_outlined, size: 18), text: 'Overview'),
@@ -182,7 +213,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
   );
 }
 
-// ─── Overview Tab ─────────────────────────────────────────────────────────────
+// --- Overview Tab -------------------------------------------------------------
 class _OverviewTab extends StatelessWidget {
   final List<_Stat> stats;
   final List<_Material> materials;
@@ -202,25 +233,76 @@ class _OverviewTab extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: AppTheme.contentMaxWidth(w)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // Header
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            if (isMobile)
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Platform Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+                const Text('ADMIN COMMAND CENTER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _luxAccentSoft, letterSpacing: 1.2)),
+                const SizedBox(height: 6),
+                const Text('Platform Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: _luxText, letterSpacing: -0.3)),
                 const SizedBox(height: 4),
-                Text('VESIT Mumbai – Circular Economy Platform', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
-              ]),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(color: AppTheme.primaryGreen, borderRadius: BorderRadius.circular(10)),
-                child: const Row(children: [
-                  Icon(Icons.add, color: Colors.white, size: 16),
-                  SizedBox(width: 6),
-                  Text('Add Material', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                const Text('VESIT Mumbai - Circular Economy Platform', style: TextStyle(fontSize: 13, color: _luxMuted)),
+                const SizedBox(height: 12),
+                Wrap(spacing: 10, runSpacing: 10, children: [
+                  GestureDetector(
+                    onTap: () => context.go('/admin-orchestrator'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(color: _luxSurfaceAlt, borderRadius: BorderRadius.circular(10), border: Border.all(color: _luxBorder)),
+                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.tune, color: _luxAccentSoft, size: 16),
+                        SizedBox(width: 6),
+                        Text('Open Orchestrator', style: TextStyle(color: _luxText, fontWeight: FontWeight.w700, fontSize: 13)),
+                      ]),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(color: _luxAccent, borderRadius: BorderRadius.circular(10)),
+                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.add, color: _luxBg0, size: 16),
+                      SizedBox(width: 6),
+                      Text('Add Material', style: TextStyle(color: _luxBg0, fontWeight: FontWeight.w700, fontSize: 13)),
+                    ]),
+                  ),
                 ]),
-              ),
-            ]),
+              ])
+            else
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('ADMIN COMMAND CENTER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _luxAccentSoft, letterSpacing: 1.2)),
+                  const SizedBox(height: 6),
+                  const Text('Platform Overview', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: _luxText, letterSpacing: -0.4)),
+                  const SizedBox(height: 4),
+                  const Text('VESIT Mumbai - Circular Economy Platform', style: TextStyle(fontSize: 14, color: _luxMuted)),
+                ]),
+                Row(children: [
+                GestureDetector(
+                  onTap: () => context.go('/admin-orchestrator'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(color: _luxSurfaceAlt, borderRadius: BorderRadius.circular(10), border: Border.all(color: _luxBorder)),
+                    child: const Row(children: [
+                      Icon(Icons.tune, color: _luxAccentSoft, size: 16),
+                      SizedBox(width: 6),
+                      Text('Open Orchestrator', style: TextStyle(color: _luxText, fontWeight: FontWeight.w700, fontSize: 13)),
+                    ]),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(color: _luxAccent, borderRadius: BorderRadius.circular(10)),
+                  child: const Row(children: [
+                    Icon(Icons.add, color: _luxBg0, size: 16),
+                    SizedBox(width: 6),
+                    Text('Add Material', style: TextStyle(color: _luxBg0, fontWeight: FontWeight.w700, fontSize: 13)),
+                  ]),
+                ),
+                ]),
+              ]),
             const SizedBox(height: 24),
             // Stats Grid
-            GridView.count(
+            _RevealOnBuild(
+              child: GridView.count(
               crossAxisCount: isMobile ? 2 : 4,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -229,24 +311,27 @@ class _OverviewTab extends StatelessWidget {
               childAspectRatio: isMobile ? 1.4 : 1.6,
               children: stats.map((s) => _StatCard(s)).toList(),
             ),
+            ),
             if (playbook != null) ...[
               const SizedBox(height: 16),
-              Container(
+              _RevealOnBuild(
+                delay: const Duration(milliseconds: 80),
+                child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FCF9),
+                  color: _luxSurface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFD4E6DA)),
+                  border: Border.all(color: _luxBorder),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Execution Priority: ${playbook!.erpPriorityModule}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text('Execution Priority: ${playbook!.erpPriorityModule}', style: const TextStyle(fontWeight: FontWeight.w700, color: _luxText)),
                     const SizedBox(height: 4),
-                    Text('CRM: ${playbook!.crmStage}  |  SCM: ${playbook!.scmMode}', style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                    Text('CRM: ${playbook!.crmStage}  |  SCM: ${playbook!.scmMode}', style: const TextStyle(fontSize: 12.5, color: _luxMuted)),
                     const SizedBox(height: 4),
-                    Text(playbook!.competitorEdge, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                    Text(playbook!.competitorEdge, style: const TextStyle(fontSize: 12.5, color: _luxMuted)),
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
@@ -275,6 +360,7 @@ class _OverviewTab extends StatelessWidget {
                   ],
                 ),
               ),
+              ),
             ],
             const SizedBox(height: 28),
             // Two-col content
@@ -284,7 +370,9 @@ class _OverviewTab extends StatelessWidget {
               _zonesPanel(context),
               const SizedBox(height: 20),
               _activityFeed(context),
-            ] else Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            ] else _RevealOnBuild(
+              delay: const Duration(milliseconds: 140),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Expanded(flex: 5, child: Column(children: [
                 _recentMaterials(context),
                 const SizedBox(height: 20),
@@ -293,8 +381,7 @@ class _OverviewTab extends StatelessWidget {
               const SizedBox(width: 20),
               Expanded(flex: 2, child: _activityFeed(context)),
             ]),
-            const SizedBox(height: 28),
-            const AdminOrchestratorSection(),
+            ),
             const SizedBox(height: 32),
             WebFooter(),
           ]),
@@ -311,15 +398,15 @@ class _OverviewTab extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(children: [
           Container(width: 38, height: 38, decoration: BoxDecoration(
-            color: AppTheme.primarySurface, borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.science_outlined, color: AppTheme.primaryGreen, size: 18)),
+            color: _luxSurfaceAlt, borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.science_outlined, color: _luxAccent, size: 18)),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(m.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
-            Text('${m.category} · ${m.lab}', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            Text(m.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: _luxText)),
+            Text('${m.category} - ${m.lab}', style: const TextStyle(fontSize: 12, color: _luxMuted)),
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('${m.qty} units', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
+            Text('${m.qty} units', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: _luxText)),
             _StatusBadge(m.status),
           ]),
         ]),
@@ -336,17 +423,17 @@ class _OverviewTab extends StatelessWidget {
         child: Row(children: [
           Container(width: 38, height: 38, decoration: BoxDecoration(
             gradient: LinearGradient(colors: z.status == 'Active'
-              ? [AppTheme.primaryGreen, AppTheme.primaryLight]
-              : [Colors.orange.shade300, Colors.orange.shade500]),
+              ? [_luxText, _luxBg0]
+              : [_luxMuted, _luxText]),
             borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.location_on_outlined, color: Colors.white, size: 18)),
+            child: const Icon(Icons.location_on_outlined, color: _luxSurface, size: 18)),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(z.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
-            Text(z.building, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            Text(z.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: _luxText)),
+            Text(z.building, style: const TextStyle(fontSize: 12, color: _luxMuted)),
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('${z.items} items', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
+            Text('${z.items} items', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: _luxText)),
             _StatusBadge(z.status),
           ]),
         ]),
@@ -358,12 +445,12 @@ class _OverviewTab extends StatelessWidget {
     title: 'Recent Activity',
     icon: Icons.timeline_outlined,
     child: Column(children: [
-      _activityItem(Icons.add_circle_outline, AppTheme.primaryGreen, 'New material listed', 'Lab A – x40 beakers', '5 min ago'),
-      _activityItem(Icons.swap_horiz, Colors.blue, 'Transfer completed', 'ECE Lab → Bio Lab', '32 min ago'),
-      _activityItem(Icons.warning_amber_outlined, Colors.orange, 'Low stock alert', 'Ethanol 99.9% – 50L left', '1 hr ago'),
-      _activityItem(Icons.person_add_outlined, AppTheme.primaryGreen, 'New user joined', 'Ananya Desai – Student', '3 hr ago'),
-      _activityItem(Icons.inventory_outlined, Colors.purple, 'Audit completed', 'Central Store verified', '5 hr ago'),
-      _activityItem(Icons.eco, AppTheme.primaryGreen, 'Impact milestone', '18,750 kg CO₂ saved!', '1 day ago'),
+      _activityItem(Icons.add_circle_outline, _luxText, 'New material listed', 'Lab A - x40 beakers', '5 min ago'),
+      _activityItem(Icons.swap_horiz, _luxText, 'Transfer completed', 'ECE Lab -> Bio Lab', '32 min ago'),
+      _activityItem(Icons.warning_amber_outlined, _luxMuted, 'Low stock alert', 'Ethanol 99.9% - 50L left', '1 hr ago'),
+      _activityItem(Icons.person_add_outlined, _luxText, 'New user joined', 'Ananya Desai - Student', '3 hr ago'),
+      _activityItem(Icons.inventory_outlined, _luxText, 'Audit completed', 'Central Store verified', '5 hr ago'),
+      _activityItem(Icons.eco, _luxText, 'Impact milestone', '18,750 kg CO2 saved!', '1 day ago'),
     ]),
   );
 
@@ -374,14 +461,14 @@ class _OverviewTab extends StatelessWidget {
         child: Icon(icon, color: color, size: 16)),
       const SizedBox(width: 10),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.textPrimary)),
-        Text(sub, style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: _luxText)),
+        Text(sub, style: const TextStyle(fontSize: 11, color: _luxMuted)),
       ])),
-      Text(time, style: TextStyle(fontSize: 10, color: AppTheme.textHint)),
+      Text(time, style: const TextStyle(fontSize: 10, color: _luxHint)),
     ]));
 }
 
-// ─── Materials Tab ─────────────────────────────────────────────────────────────
+// --- Materials Tab -------------------------------------------------------------
 class _MaterialsTab extends StatelessWidget {
   final List<_Material> materials;
   final String search;
@@ -407,20 +494,24 @@ class _MaterialsTab extends StatelessWidget {
               child: TextField(
                 onChanged: onSearch,
                 decoration: InputDecoration(
-                  hintText: 'Search materials…',
+                  hintText: 'Search materials...',
                   prefixIcon: const Icon(Icons.search, size: 18),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
-                  filled: true, fillColor: const Color(0xFFF5F9F6),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _luxBorder)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _luxBorder)),
+                  filled: true, fillColor: _luxSurfaceAlt,
                   isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               )),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
-                headingRowColor: WidgetStateProperty.all(AppTheme.primarySurface),
-                headingTextStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.textPrimary),
-                dataRowColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? AppTheme.primarySurface : Colors.white),
+                headingRowColor: WidgetStateProperty.all(_luxSurfaceAlt),
+                headingTextStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: _luxText),
+                dataRowColor: WidgetStateProperty.resolveWith(
+                  (s) => s.contains(WidgetState.selected)
+                      ? _luxMuted
+                      : _luxSurface,
+                ),
                 columns: const [
                   DataColumn(label: Text('ID')),
                   DataColumn(label: Text('Name')),
@@ -431,15 +522,15 @@ class _MaterialsTab extends StatelessWidget {
                   DataColumn(label: Text('Actions')),
                 ],
                 rows: filtered.map((m) => DataRow(cells: [
-                  DataCell(Text(m.id, style: TextStyle(color: AppTheme.textHint, fontSize: 12))),
-                  DataCell(Text(m.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
-                  DataCell(Text(m.category, style: const TextStyle(fontSize: 13))),
-                  DataCell(Text(m.lab, style: const TextStyle(fontSize: 13))),
-                  DataCell(Text('${m.qty}', style: const TextStyle(fontSize: 13))),
+                  DataCell(Text(m.id, style: const TextStyle(color: _luxHint, fontSize: 12))),
+                  DataCell(Text(m.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: _luxText))),
+                  DataCell(Text(m.category, style: const TextStyle(fontSize: 13, color: _luxText))),
+                  DataCell(Text(m.lab, style: const TextStyle(fontSize: 13, color: _luxMuted))),
+                  DataCell(Text('${m.qty}', style: const TextStyle(fontSize: 13, color: _luxText))),
                   DataCell(_StatusBadge(m.status)),
                   DataCell(Row(children: [
-                    IconButton(icon: const Icon(Icons.edit_outlined, size: 16), onPressed: () {}, color: AppTheme.primaryGreen),
-                    IconButton(icon: const Icon(Icons.delete_outline, size: 16), onPressed: () {}, color: Colors.red.shade400),
+                    IconButton(icon: const Icon(Icons.edit_outlined, size: 16), onPressed: () {}, color: _luxText),
+                    IconButton(icon: const Icon(Icons.delete_outline, size: 16), onPressed: () {}, color: _luxText),
                   ])),
                 ])).toList(),
               ),
@@ -451,7 +542,7 @@ class _MaterialsTab extends StatelessWidget {
   }
 }
 
-// ─── Zones Tab ─────────────────────────────────────────────────────────────────
+// --- Zones Tab -----------------------------------------------------------------
 class _ZonesTab extends StatelessWidget {
   final List<_Zone> zones;
   final bool isMobile;
@@ -468,14 +559,14 @@ class _ZonesTab extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: AppTheme.contentMaxWidth(w)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text('Campus Zones', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+              const Text('Campus Zones', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _luxText)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(color: AppTheme.primaryGreen, borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: _luxAccent, borderRadius: BorderRadius.circular(10)),
                 child: const Row(children: [
-                  Icon(Icons.add, color: Colors.white, size: 16),
+                  Icon(Icons.add, color: _luxBg0, size: 16),
                   SizedBox(width: 6),
-                  Text('Add Zone', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                  Text('Add Zone', style: TextStyle(color: _luxBg0, fontWeight: FontWeight.w700, fontSize: 13)),
                 ]),
               ),
             ]),
@@ -503,12 +594,13 @@ class _ZoneCard extends StatelessWidget {
   final _Zone zone;
   const _ZoneCard(this.zone);
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => _HoverCard(
+    child: Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: _luxSurface,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: const Color(0xFFE5EFE8)),
+      border: Border.all(color: _luxBorder),
       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
     ),
     child: Row(children: [
@@ -516,30 +608,31 @@ class _ZoneCard extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: zone.status == 'Active'
-              ? [AppTheme.primaryGreen, AppTheme.primaryLight]
-              : [Colors.orange.shade400, Colors.orange.shade600],
+              ? [_luxText, _luxBg0]
+              : [_luxMuted, _luxText],
             begin: Alignment.topLeft, end: Alignment.bottomRight),
           borderRadius: BorderRadius.circular(12)),
-        child: const Icon(Icons.location_city, color: Colors.white, size: 26)),
+        child: const Icon(Icons.location_city, color: _luxSurface, size: 26)),
       const SizedBox(width: 16),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(zone.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppTheme.textPrimary)),
+        Text(zone.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: _luxText)),
         const SizedBox(height: 3),
-        Text(zone.building, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+        Text(zone.building, style: const TextStyle(fontSize: 12, color: _luxMuted)),
         const SizedBox(height: 3),
-        Text('Contact: ${zone.contact}', style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
+        Text('Contact: ${zone.contact}', style: const TextStyle(fontSize: 12, color: _luxHint)),
       ])),
       Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        Text('${zone.items}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.primaryGreen)),
-        Text('items', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+        Text('${zone.items}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _luxAccentSoft)),
+        Text('items', style: const TextStyle(fontSize: 11, color: _luxMuted)),
         const SizedBox(height: 6),
         _StatusBadge(zone.status),
       ]),
     ]),
+    ),
   );
 }
 
-// ─── Users Tab ─────────────────────────────────────────────────────────────────
+// --- Users Tab -----------------------------------------------------------------
 class _UsersTab extends StatelessWidget {
   final List<_User> users;
   final String search;
@@ -565,19 +658,19 @@ class _UsersTab extends StatelessWidget {
               child: TextField(
                 onChanged: onSearch,
                 decoration: InputDecoration(
-                  hintText: 'Search users…',
+                  hintText: 'Search users...',
                   prefixIcon: const Icon(Icons.search, size: 18),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
-                  filled: true, fillColor: const Color(0xFFF5F9F6),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _luxBorder)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _luxBorder)),
+                  filled: true, fillColor: _luxSurfaceAlt,
                   isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               )),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
-                headingRowColor: WidgetStateProperty.all(AppTheme.primarySurface),
-                headingTextStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.textPrimary),
+                headingRowColor: WidgetStateProperty.all(_luxSurfaceAlt),
+                headingTextStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: _luxText),
                 columns: const [
                   DataColumn(label: Text('User')),
                   DataColumn(label: Text('Email')),
@@ -589,33 +682,33 @@ class _UsersTab extends StatelessWidget {
                 rows: filtered.map((u) => DataRow(cells: [
                   DataCell(Row(children: [
                     CircleAvatar(radius: 16,
-                      backgroundColor: AppTheme.primarySurface,
-                      child: Text(u.name[0], style: const TextStyle(color: AppTheme.primaryGreen, fontWeight: FontWeight.w700, fontSize: 13))),
+                      backgroundColor: _luxSurfaceAlt,
+                      child: Text(u.name[0], style: const TextStyle(color: _luxAccentSoft, fontWeight: FontWeight.w700, fontSize: 13))),
                     const SizedBox(width: 10),
-                    Text(u.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    Text(u.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: _luxText)),
                   ])),
-                  DataCell(Text(u.email, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary))),
+                  DataCell(Text(u.email, style: const TextStyle(fontSize: 12, color: _luxMuted))),
                   DataCell(Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                     decoration: BoxDecoration(
-                      color: u.role == 'Lab Admin' ? const Color(0xFFE8F4FD) : AppTheme.primarySurface,
+                      color: u.role == 'Lab Admin' ? _luxMuted : _luxSurfaceAlt,
                       borderRadius: BorderRadius.circular(20)),
                     child: Text(u.role, style: TextStyle(
                       fontSize: 11, fontWeight: FontWeight.w600,
-                      color: u.role == 'Lab Admin' ? const Color(0xFF1565C0) : AppTheme.primaryGreen)))),
-                  DataCell(Text(u.joined, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary))),
+                      color: u.role == 'Lab Admin' ? _luxText : _luxAccentSoft)))),
+                  DataCell(Text(u.joined, style: const TextStyle(fontSize: 12, color: _luxMuted))),
                   DataCell(Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: u.active ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+                      color: u.active ? _luxMuted : _luxMuted,
                       borderRadius: BorderRadius.circular(20)),
                     child: Text(u.active ? 'Active' : 'Inactive', style: TextStyle(
                       fontSize: 11, fontWeight: FontWeight.w600,
-                      color: u.active ? const Color(0xFF2E7D32) : Colors.orange.shade700)))),
+                      color: u.active ? _luxText : _luxText)))),
                   DataCell(Row(children: [
-                    IconButton(icon: const Icon(Icons.edit_outlined, size: 16), onPressed: () {}, color: AppTheme.primaryGreen),
+                    IconButton(icon: const Icon(Icons.edit_outlined, size: 16), onPressed: () {}, color: _luxText),
                     IconButton(icon: Icon(u.active ? Icons.block : Icons.check_circle_outline, size: 16),
-                      onPressed: () {}, color: u.active ? Colors.orange : AppTheme.primaryGreen),
+                      onPressed: () {}, color: u.active ? _luxMuted : _luxText),
                   ])),
                 ])).toList(),
               ),
@@ -627,37 +720,39 @@ class _UsersTab extends StatelessWidget {
   }
 }
 
-// ─── Shared Widgets ────────────────────────────────────────────────────────────
+// --- Shared Widgets ------------------------------------------------------------
 class _StatCard extends StatelessWidget {
   final _Stat stat;
   const _StatCard(this.stat);
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => _HoverCard(
+    child: Container(
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: _luxSurface,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: const Color(0xFFE5EFE8)),
-      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4))],
+      border: Border.all(color: _luxBorder),
+      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 14, offset: const Offset(0, 6))],
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Container(width: 38, height: 38, decoration: BoxDecoration(
-          color: stat.color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+          color: _luxSurfaceAlt, borderRadius: BorderRadius.circular(10)),
           child: Icon(stat.icon, color: stat.color, size: 20)),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: stat.change.startsWith('+') ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+            color: stat.change.startsWith('+') ? _luxMuted : _luxMuted,
             borderRadius: BorderRadius.circular(20)),
           child: Text(stat.change, style: TextStyle(
             fontSize: 11, fontWeight: FontWeight.w700,
-            color: stat.change.startsWith('+') ? const Color(0xFF2E7D32) : Colors.orange.shade700))),
+            color: stat.change.startsWith('+') ? _luxText : _luxText))),
       ]),
       const SizedBox(height: 8),
       Text(stat.value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: stat.color)),
-      Text(stat.label, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w500)),
+      Text(stat.label, style: const TextStyle(fontSize: 12, color: _luxMuted, fontWeight: FontWeight.w500)),
     ]),
+    ),
   );
 }
 
@@ -667,47 +762,82 @@ class _SectionCard extends StatelessWidget {
   final Widget child;
   final Widget? headerTrailing;
   const _SectionCard({required this.title, required this.icon, required this.child, this.headerTrailing});
+
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFE5EFE8)),
-      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4))],
-    ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 16, 14),
-        child: Row(children: [
-          Container(width: 34, height: 34, decoration: BoxDecoration(
-            color: AppTheme.primarySurface, borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, color: AppTheme.primaryGreen, size: 18)),
-          const SizedBox(width: 10),
-          Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
-          const Spacer(),
-          if (headerTrailing != null) headerTrailing!,
-        ]),
+  Widget build(BuildContext context) {
+    return _HoverCard(
+    child: Container(
+      decoration: BoxDecoration(
+        color: _luxSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _luxBorder),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 16, offset: const Offset(0, 6))],
       ),
-      const Divider(height: 1, color: Color(0xFFEAF1EB)),
-      Padding(padding: const EdgeInsets.fromLTRB(20, 12, 20, 20), child: child),
-    ]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 16, 14),
+          child: Row(children: [
+            Container(width: 34, height: 34, decoration: BoxDecoration(
+              color: _luxSurfaceAlt, borderRadius: BorderRadius.circular(8)),
+              child: Icon(icon, color: _luxAccentSoft, size: 18)),
+            const SizedBox(width: 10),
+            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _luxText)),
+            const Spacer(),
+            if (headerTrailing != null) headerTrailing!,
+          ]),
+        ),
+        const Divider(height: 1, color: _luxBorder),
+        Padding(padding: const EdgeInsets.fromLTRB(20, 12, 20, 20), child: child),
+      ]),
+    ),
   );
+  }
+}
+
+class _HoverCard extends StatefulWidget {
+  final Widget child;
+  const _HoverCard({required this.child});
+
+  @override
+  State<_HoverCard> createState() => _HoverCardState();
+}
+
+class _HoverCardState extends State<_HoverCard> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        transform: Matrix4.identity()..translate(0.0, _hovered ? -4.0 : 0.0),
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 180),
+          scale: _hovered ? 1.008 : 1,
+          child: widget.child,
+        ),
+      ),
+    );
+  }
 }
 
 class _StatusBadge extends StatelessWidget {
   final String status;
   const _StatusBadge(this.status);
   Color get _bg => switch (status) {
-    'Available' || 'Active' => const Color(0xFFE8F5E9),
-    'In Use' => const Color(0xFFE8F4FD),
-    'Low Stock' || 'Maintenance' => const Color(0xFFFFF3E0),
-    _ => const Color(0xFFF5F5F5),
+    'Available' || 'Active' => _luxMuted,
+    'In Use' => _luxMuted,
+    'Low Stock' || 'Maintenance' => _luxMuted,
+    _ => _luxMuted,
   };
   Color get _fg => switch (status) {
-    'Available' || 'Active' => const Color(0xFF2E7D32),
-    'In Use' => const Color(0xFF1565C0),
-    'Low Stock' || 'Maintenance' => Colors.orange,
-    _ => Colors.grey,
+    'Available' || 'Active' => _luxText,
+    'In Use' => _luxText,
+    'Low Stock' || 'Maintenance' => _luxText,
+    _ => _luxMuted,
   };
   @override
   Widget build(BuildContext context) => Container(
@@ -718,7 +848,7 @@ class _StatusBadge extends StatelessWidget {
 }
 
 
-// ─── Analytics Tab ────────────────────────────────────────────────────────────
+// --- Analytics Tab ------------------------------------------------------------
 class _AnalyticsTab extends StatelessWidget {
   const _AnalyticsTab();
 
@@ -735,18 +865,18 @@ class _AnalyticsTab extends StatelessWidget {
           Container(
             width: 40, height: 40,
             decoration: BoxDecoration(
-              color: AppTheme.primaryGreen.withOpacity(0.1),
+              color: _luxText.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.bar_chart, color: AppTheme.primaryGreen, size: 22),
+            child: const Icon(Icons.bar_chart, color: _luxText, size: 22),
           ),
           const SizedBox(width: 12),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Analytics & Insights',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary)),
+                color: _luxText)),
             Text('Material demand trends and supply gap analysis',
-                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+              style: const TextStyle(fontSize: 13, color: _luxMuted)),
           ]),
           const Spacer(),
           // Export button
@@ -755,8 +885,8 @@ class _AnalyticsTab extends StatelessWidget {
             icon: const Icon(Icons.download_outlined, size: 16),
             label: const Text('Export Report'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.primaryGreen,
-              side: const BorderSide(color: AppTheme.primaryGreen),
+              foregroundColor: _luxAccentSoft,
+              side: const BorderSide(color: _luxAccent),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -803,19 +933,20 @@ class _AnalyticsTab extends StatelessWidget {
 
   List<Widget> _analyticsStats() {
     final items = [
-      ('Total Requests', '156', '+18%', Icons.trending_up, AppTheme.primaryGreen),
-      ('Avg Supply Ratio', '74%', '-3%', Icons.inventory_2_outlined, AppTheme.info),
-      ('Critical Items', '2', '+1', Icons.warning_amber_outlined, AppTheme.error),
-      ('Surplus Items', '3', '+2', Icons.check_circle_outline, AppTheme.success),
+      ('Total Requests', '156', '+18%', Icons.trending_up, _infA),
+      ('Avg Supply Ratio', '74%', '-3%', Icons.inventory_2_outlined, _infB),
+      ('Critical Items', '2', '+1', Icons.warning_amber_outlined, _infC),
+      ('Surplus Items', '3', '+2', Icons.check_circle_outline, _infD),
     ];
-    return items.map((s) => Container(
+    return items.map((s) => _HoverCard(
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _luxSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5EFE8)),
+        border: Border.all(color: _luxBorder),
         boxShadow: [BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withOpacity(0.16),
             blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Row(children: [
@@ -829,7 +960,7 @@ class _AnalyticsTab extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(s.$1, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+          Text(s.$1, style: const TextStyle(fontSize: 12, color: _luxMuted)),
           const SizedBox(height: 2),
           Row(children: [
             Text(s.$2, style: TextStyle(
@@ -839,45 +970,48 @@ class _AnalyticsTab extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: s.$3.startsWith('+') && !s.$3.contains('-')
-                    ? AppTheme.success.withOpacity(0.1)
-                    : AppTheme.error.withOpacity(0.1),
+                    ? _luxText.withOpacity(0.1)
+                    : _luxText.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(s.$3, style: TextStyle(
                   fontSize: 10, fontWeight: FontWeight.w600,
                   color: s.$3.startsWith('+') && !s.$3.contains('-')
-                      ? AppTheme.success : AppTheme.error)),
+                      ? _luxText : _luxText)),
             ),
           ]),
         ])),
       ]),
+    ),
     )).toList();
   }
 
   Widget _trendSummary() {
-    return Container(
+    return _HoverCard(
+      child: Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.primaryGreen.withOpacity(0.05),
+        color: _luxSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.2)),
+        border: Border.all(color: _luxBorder),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Icon(Icons.insights, color: AppTheme.primaryGreen, size: 20),
+          const Icon(Icons.insights, color: _luxAccentSoft, size: 20),
           const SizedBox(width: 8),
           Text('Key Insights',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary)),
+                  color: _luxText)),
         ]),
         const SizedBox(height: 16),
         Wrap(spacing: 12, runSpacing: 12, children: [
-          _insightChip('⚠️ Metal Alloys critically low — restock needed', AppTheme.error),
-          _insightChip('✅ Electronic Components well stocked (surplus)', AppTheme.success),
-          _insightChip('📈 Plastic demand up 20% this month', AppTheme.warning),
-          _insightChip('🔄 Chemical Reagents perfectly balanced', AppTheme.info),
+          _insightChip('Metal Alloys critically low - restock needed', _infC),
+          _insightChip('Electronic Components well stocked (surplus)', _infA),
+          _insightChip('Plastic demand up 20% this month', _infB),
+          _insightChip('Chemical Reagents perfectly balanced', _infD),
         ]),
       ]),
+      ),
     );
   }
 
@@ -890,7 +1024,45 @@ class _AnalyticsTab extends StatelessWidget {
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(text,
-          style: TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
+          style: const TextStyle(fontSize: 13, color: _luxText)),
+    );
+  }
+}
+
+class _RevealOnBuild extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+  const _RevealOnBuild({required this.child, this.delay = Duration.zero});
+
+  @override
+  State<_RevealOnBuild> createState() => _RevealOnBuildState();
+}
+
+class _RevealOnBuildState extends State<_RevealOnBuild> {
+  bool _shown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(widget.delay, () {
+      if (mounted) {
+        setState(() => _shown = true);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: _shown ? 1 : 0,
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.easeOut,
+      child: AnimatedSlide(
+        duration: const Duration(milliseconds: 360),
+        curve: Curves.easeOut,
+        offset: _shown ? Offset.zero : const Offset(0, 0.03),
+        child: widget.child,
+      ),
     );
   }
 }

@@ -21,12 +21,12 @@ class AppTheme {
   static const Color info          = Color(0xFF457B9D);
 
   // ─── Backgrounds & Surfaces ───────────────────────────────────────
-  static const Color backgroundLight = Color(0xFFF8FAF8); // near-white warm
+  static const Color backgroundLight = Color(0xFFE6EFE8); // soft sage
   static const Color backgroundDark  = Color(0xFF0F1F17); // deep dark green
 
-  static const Color surfaceLight  = Color(0xFFFFFFFF);
+  static const Color surfaceLight  = Color(0xFFEFF5F1);
   static const Color surfaceDark   = Color(0xFF1A2E22);
-  static const Color surfaceCard   = Color(0xFFF3FAF5); // very light green card
+  static const Color surfaceCard   = Color(0xFFE7F1EA); // muted card green
 
   // ─── Text ─────────────────────────────────────────────────────────
   static const Color textPrimary   = Color(0xFF1B2A1E);

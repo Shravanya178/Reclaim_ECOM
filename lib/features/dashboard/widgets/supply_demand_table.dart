@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
 
+const Color _sdSurplus = Color(0xFF2F5D3A);
+const Color _sdBalanced = Color(0xFF6E4B7E);
+const Color _sdDeficit = Color(0xFFB27A3B);
+const Color _sdCritical = Color(0xFF8B3A2E);
+
 class SupplyDemandTable extends StatelessWidget {
   const SupplyDemandTable({super.key});
 
@@ -156,7 +161,7 @@ class SupplyDemandTable extends StatelessWidget {
                                 style: GoogleFonts.inter(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
-                                  color: AppTheme.error,
+                                  color: _sdCritical,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -172,7 +177,7 @@ class SupplyDemandTable extends StatelessWidget {
                                   widthFactor: (item.requests / 24).clamp(0.0, 1.0),
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: AppTheme.error,
+                                      color: _sdCritical,
                                       borderRadius: BorderRadius.circular(2),
                                     ),
                                   ),
@@ -190,7 +195,7 @@ class SupplyDemandTable extends StatelessWidget {
                                 style: GoogleFonts.inter(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
-                                  color: AppTheme.success,
+                                  color: _sdSurplus,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -206,7 +211,7 @@ class SupplyDemandTable extends StatelessWidget {
                                   widthFactor: (item.stock / 38).clamp(0.0, 1.0),
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: AppTheme.success,
+                                      color: _sdSurplus,
                                       borderRadius: BorderRadius.circular(2),
                                     ),
                                   ),
@@ -255,10 +260,10 @@ class SupplyDemandTable extends StatelessWidget {
                   spacing: 16,
                   runSpacing: 8,
                   children: [
-                    _buildLegendItem('Surplus', 'Stock > Demand', AppTheme.success),
-                    _buildLegendItem('Balanced', 'Stock = Demand', AppTheme.info),
-                    _buildLegendItem('Deficit', 'Stock < Demand', AppTheme.warning),
-                    _buildLegendItem('Critical', 'Stock < 50% Demand', AppTheme.error),
+                    _buildLegendItem('Surplus', 'Stock > Demand', _sdSurplus),
+                    _buildLegendItem('Balanced', 'Stock = Demand', _sdBalanced),
+                    _buildLegendItem('Deficit', 'Stock < Demand', _sdDeficit),
+                    _buildLegendItem('Critical', 'Stock < 50% Demand', _sdCritical),
                   ],
                 ),
               ],
@@ -274,16 +279,16 @@ class SupplyDemandTable extends StatelessWidget {
     String status;
 
     if (item.stock > item.requests) {
-      color = AppTheme.success;
+      color = _sdSurplus;
       status = 'Surplus';
     } else if (item.stock == item.requests) {
-      color = AppTheme.info;
+      color = _sdBalanced;
       status = 'Balanced';
     } else if (item.stock < item.requests * 0.5) {
-      color = AppTheme.error;
+      color = _sdCritical;
       status = 'Critical';
     } else {
-      color = AppTheme.warning;
+      color = _sdDeficit;
       status = 'Deficit';
     }
 

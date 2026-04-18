@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:reclaim/core/services/email_campaign_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,6 +14,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _emailNotifications = true;
   bool _darkMode = false;
   String _selectedLanguage = 'English';
+  bool _sendingCampaignEmail = false;
 
   bool get _isDesktop => MediaQuery.of(context).size.width > 768;
 
@@ -89,6 +91,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _buildSettingsTile(icon: Icons.help_outline, title: 'Help Center', subtitle: 'Get help with ReClaim', onTap: () {}),
                     _buildSettingsTile(icon: Icons.feedback_outlined, title: 'Send Feedback', subtitle: 'Help us improve the app', onTap: () {}),
                     _buildSettingsTile(icon: Icons.bug_report_outlined, title: 'Report a Bug', subtitle: 'Let us know about issues', onTap: () {}),
+                    _buildSettingsTile(
+                      icon: Icons.campaign_outlined,
+                      title: 'Send Reminder/Ad Email',
+                      subtitle: 'Admin tool for reminder or promotional campaign',
+                      onTap: _sendingCampaignEmail ? null : _showCampaignDialog,
+                      trailing: _sendingCampaignEmail
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                    ),
                   ]),
                   
                   // About Section
@@ -201,5 +216,138 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showCampaignDialog() async {
+    final recipientsController = TextEditingController();
+    final subjectController = TextEditingController();
+    final bodyController = TextEditingController();
+    CampaignEmailType type = CampaignEmailType.reminder;
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Send Reminder/Advertisement Email'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: recipientsController,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Recipients (comma-separated emails)',
+                        hintText: 'user1@example.com, user2@example.com',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<CampaignEmailType>(
+                      value: type,
+                      decoration: const InputDecoration(labelText: 'Email Type'),
+                      items: const [
+                        DropdownMenuItem(
+                          value: CampaignEmailType.reminder,
+                          child: Text('Reminder'),
+                        ),
+                        DropdownMenuItem(
+                          value: CampaignEmailType.advertisement,
+                          child: Text('Advertisement'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setDialogState(() => type = value);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: subjectController,
+                      decoration: const InputDecoration(labelText: 'Subject'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: bodyController,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 6,
+                      decoration: const InputDecoration(labelText: 'Message Body'),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final recipients = recipientsController.text
+                        .split(',')
+                        .map((e) => e.trim())
+                        .where((e) => e.isNotEmpty)
+                        .toList();
+
+                    final subject = subjectController.text.trim();
+                    final body = bodyController.text.trim();
+
+                    if (recipients.isEmpty || subject.isEmpty || body.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Recipients, subject, and body are required.')),
+                      );
+                      return;
+                    }
+
+                    Navigator.of(dialogContext).pop();
+                    await _sendCampaignEmail(
+                      recipients: recipients,
+                      subject: subject,
+                      body: body,
+                      type: type,
+                    );
+                  },
+                  child: const Text('Send'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _sendCampaignEmail({
+    required List<String> recipients,
+    required String subject,
+    required String body,
+    required CampaignEmailType type,
+  }) async {
+    setState(() => _sendingCampaignEmail = true);
+
+    try {
+      final message = await EmailCampaignService.sendCampaignEmail(
+        recipients: recipients,
+        subject: subject,
+        body: body,
+        type: type,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _sendingCampaignEmail = false);
+      }
+    }
   }
 }

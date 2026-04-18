@@ -18,10 +18,10 @@ class _MostRequestedMaterialsChartState extends State<MostRequestedMaterialsChar
 
   final List<MaterialData> data = [
     MaterialData('Electronic\nComponents', 18, const Color(0xFF2D6A4F)),
-    MaterialData('Plastic', 12, const Color(0xFF52B788)),
-    MaterialData('Metal', 9, const Color(0xFFE9C46A)),
-    MaterialData('Glass', 7, const Color(0xFF40916C)),
-    MaterialData('Chemical', 5, const Color(0xFFD62828)),
+    MaterialData('Plastic', 12, const Color(0xFFB27A3B)),
+    MaterialData('Metal', 9, const Color(0xFF8B3A2E)),
+    MaterialData('Glass', 7, const Color(0xFF6E4B7E)),
+    MaterialData('Chemical', 5, const Color(0xFFA69B5D)),
   ];
 
   @override

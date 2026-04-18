@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:reclaim/core/theme/app_theme.dart';
+import 'package:reclaim/core/widgets/ecommerce_backdrop.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
 import 'package:reclaim/core/widgets/web_navbar.dart';
@@ -34,7 +35,11 @@ class OrderDetailScreen extends ConsumerWidget {
         title: Text(orderId, style: const TextStyle(fontWeight: FontWeight.w700)),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/orders')),
       ) : null,
-      body: isMobile ? _mobile(context) : _desktop(context),
+      body: EcommerceBackdrop(
+        imageUrl:
+            'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=1800&q=80',
+        child: isMobile ? _mobile(context) : _desktop(context),
+      ),
     );
   }
 
@@ -215,7 +220,7 @@ class OrderDetailScreen extends ConsumerWidget {
 
   Widget _card(String title, IconData? ic, {required Widget child}) => Container(
     width: double.infinity,
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
+    decoration: BoxDecoration(color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(16),
       border: Border.all(color: const Color(0xFFE5EFE8)),
       boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,3))]),
     padding: const EdgeInsets.all(24),

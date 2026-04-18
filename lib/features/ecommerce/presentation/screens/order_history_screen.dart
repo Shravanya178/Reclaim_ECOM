@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
+import 'package:reclaim/core/widgets/ecommerce_backdrop.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
 import 'package:reclaim/core/widgets/web_navbar.dart';
@@ -80,7 +81,13 @@ class OrderHistoryScreen extends ConsumerWidget {
         elevation: 0,
         title: const Text('My Orders', style: TextStyle(fontWeight: FontWeight.w700)),
       ) : null,
-      body: isMobile ? _mobile(context, orders, isLoading) : _desktop(context, orders, isLoading),
+      body: EcommerceBackdrop(
+        imageUrl:
+            'https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&w=1800&q=80',
+        child: isMobile
+            ? _mobile(context, orders, isLoading)
+            : _desktop(context, orders, isLoading),
+      ),
     );
   }
 
@@ -183,7 +190,7 @@ class OrderHistoryScreen extends ConsumerWidget {
     return Row(children: stats.map((s) => Expanded(child: Container(
       margin: const EdgeInsets.only(right: 16),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+      decoration: BoxDecoration(color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE5EFE8)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,3))]),
       child: Row(children: [
@@ -201,7 +208,7 @@ class OrderHistoryScreen extends ConsumerWidget {
 
   Widget _ordersTable(BuildContext context, List<_Order> orders) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
+      decoration: BoxDecoration(color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE5EFE8)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,3))]),
       child: Column(children: [
@@ -327,7 +334,7 @@ class OrderHistoryScreen extends ConsumerWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+        decoration: BoxDecoration(color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFFE5EFE8)),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0,3))]),
         child: Column(children: [

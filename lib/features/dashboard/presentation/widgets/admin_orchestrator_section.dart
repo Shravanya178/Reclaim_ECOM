@@ -2,7 +2,22 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:reclaim/core/services/customer_voice_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
+
+const Color _adminBg = Color(0xFF718F6C);
+const Color _adminSurface = Color(0xFFF3F1E7);
+const Color _adminSurfaceAlt = Color(0xFFF3F1E7);
+const Color _adminBorder = Color(0xFF2F5D3A);
+const Color _adminText = Color(0xFF2F5D3A);
+const Color _adminMuted = Color(0xFF718F6C);
+const Color _adminGold = Color(0xFF2F5D3A);
+const Color _adminGoldSoft = Color(0xFF718F6C);
+const Color _graph1 = Color(0xFF2F5D3A);
+const Color _graph2 = Color(0xFFB27A3B);
+const Color _graph3 = Color(0xFF8B3A2E);
+const Color _graph4 = Color(0xFF6E4B7E);
+const Color _graph5 = Color(0xFFA69B5D);
 
 class AdminOrchestratorSection extends StatefulWidget {
   const AdminOrchestratorSection({super.key});
@@ -260,10 +275,80 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
   List<_Complaint> _complaints = List<_Complaint>.from(_seedComplaints);
   List<_InteractionPulse> _interactions = List<_InteractionPulse>.from(_seedInteractions);
   List<_MaterialControl> _materialControls = List<_MaterialControl>.from(_seedMaterialControls);
+  List<VoiceEntry> _liveComplaintInbox = const <VoiceEntry>[];
+  Map<String, int> _liveFeedbackBuckets = const {};
+  Map<String, int> _liveComplaintBuckets = const {};
+  int _liveFeedbackCount = 0;
+  int _liveComplaintCount = 0;
 
   int _memoVersion = 0;
   int _memoLastVersion = -1;
   Map<String, int> _memoDerived = const {};
+
+  @override
+  void initState() {
+    super.initState();
+    _reloadVoiceData();
+  }
+
+  Future<void> _reloadVoiceData() async {
+    final svc = CustomerVoiceService.instance;
+    await svc.ensureSeeded();
+    final complaints = await svc.getEntriesByType(VoiceType.complaint);
+    final feedback = await svc.getEntriesByType(VoiceType.feedback);
+    final feedbackBuckets = await svc.getThreeSectionCounts(VoiceType.feedback);
+    final complaintBuckets = await svc.getThreeSectionCounts(VoiceType.complaint);
+    final discountMap = await svc.getMaterialDiscountMap();
+
+    if (!mounted) return;
+    setState(() {
+      _liveComplaintInbox = complaints.where((e) => !e.resolved).take(16).toList();
+      _liveFeedbackBuckets = feedbackBuckets;
+      _liveComplaintBuckets = complaintBuckets;
+      _liveFeedbackCount = feedback.length;
+      _liveComplaintCount = complaints.length;
+      _materialControls = _materialControls
+          .map(
+            (control) => control.copyWith(
+              discount: _isDiscountActiveForMaterial(control.material, discountMap),
+            ),
+          )
+          .toList(growable: false);
+    });
+  }
+
+  bool _isDiscountActiveForMaterial(String material, Map<String, double> discountMap) {
+    final normalized = _normalizeMaterial(material);
+    final tokens = normalized.split(' ').where((e) => e.isNotEmpty).toSet();
+    for (final entry in discountMap.entries) {
+      final keyTokens = entry.key.split(' ').where((e) => e.isNotEmpty).toSet();
+      final overlap = tokens.intersection(keyTokens).length;
+      if (overlap >= 2 || entry.key.contains(normalized) || normalized.contains(entry.key)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  String _normalizeMaterial(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9 ]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  Color _tabAccentColor() {
+    return switch (_activeTab) {
+      'SCM' => _adminText,
+      'Revenue' => _adminText,
+      'Marketing' => _adminMuted,
+      'CRM' => _adminText,
+      'Security' => _adminMuted,
+      'ERP' => _adminMuted,
+      _ => _adminText,
+    };
+  }
 
   void _invalidateMemo() {
     _memoVersion += 1;
@@ -345,9 +430,10 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
     });
   }
 
-  void _toggleMaterialAction(int index, String action) {
+  Future<void> _toggleMaterialAction(int index, String action) async {
     final control = _materialControls[index];
     _MaterialControl next = control;
+    final voice = CustomerVoiceService.instance;
 
     if (action == 'Highlight') {
       next = control.copyWith(highlighted: !control.highlighted, placement: 'Category Featured');
@@ -355,8 +441,23 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
       next = control.copyWith(mainLanding: !control.mainLanding, placement: 'Priority Queue');
     } else if (action == 'Contact Supplier') {
       next = control.copyWith(contactSupplier: !control.contactSupplier, supplierAction: 'Supplier contacted for faster closure');
+      if (!control.contactSupplier) {
+        await voice.resolveOldestComplaintForMaterial(control.material);
+      }
     } else if (action == 'Give Discount') {
       final nowDiscount = !control.discount;
+      if (nowDiscount) {
+        final canDiscount = await voice.hasPositiveFeedbackForMaterial(control.material);
+        if (!canDiscount) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Discount requires positive material feedback (rating 4+).')),
+          );
+          return;
+        }
+      }
+
+      await voice.setMaterialDiscount(material: control.material, active: nowDiscount);
       next = control.copyWith(discount: nowDiscount, supplierAction: nowDiscount ? 'Discount approved by supplier' : 'Discount revoked');
 
       final pulseIndex = _interactions.indexWhere((i) => i.material == control.material);
@@ -381,6 +482,8 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
         );
       }
     });
+
+    await _reloadVoiceData();
   }
 
   String _timeString(DateTime dt) {
@@ -406,19 +509,19 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                   height: 34,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    color: AppTheme.primarySurface,
+                    color: _adminSurfaceAlt,
                   ),
-                  child: const Icon(Icons.admin_panel_settings_outlined, size: 18, color: AppTheme.primaryGreen),
+                  child: const Icon(Icons.admin_panel_settings_outlined, size: 18, color: _adminGoldSoft),
                 ),
                 const SizedBox(width: 10),
                 const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Global Admin Orchestrator', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+                      Text('Global Admin Orchestrator', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _adminText)),
                       SizedBox(height: 2),
                       Text('State machine + conditional renderer for SCM, Revenue, Marketing, CRM, Security, and ERP.',
-                          style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                          style: TextStyle(fontSize: 12.5, color: _adminMuted)),
                     ],
                   ),
                 ),
@@ -461,14 +564,14 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
       width: 210,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FCF9),
+        color: _adminSurfaceAlt,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFDCE9E0)),
+        border: Border.all(color: _adminBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Navigation', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+          const Text('Navigation', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
           const SizedBox(height: 8),
           ..._tabs.map(
             (tab) => Padding(
@@ -480,16 +583,16 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                   decoration: BoxDecoration(
-                    color: _activeTab == tab ? AppTheme.primaryGreen.withValues(alpha: 0.12) : Colors.transparent,
+                    color: _activeTab == tab ? _adminSurface : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: _activeTab == tab ? AppTheme.primaryGreen.withValues(alpha: 0.35) : const Color(0xFFD9E4DC),
+                      color: _activeTab == tab ? _adminGold : _adminBorder,
                     ),
                   ),
                   child: Text(
                     tab,
                     style: TextStyle(
-                      color: _activeTab == tab ? AppTheme.primaryGreen : AppTheme.textSecondary,
+                      color: _activeTab == tab ? _adminGoldSoft : _adminMuted,
                       fontWeight: _activeTab == tab ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
@@ -528,11 +631,11 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Advanced Web Features', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+            const Text('Advanced Web Features', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
             const SizedBox(height: 5),
             const Text(
               'SCM automated triggers, SCM pull/push controls, and CRM lifecycle tracking are available as dedicated web features.',
-              style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary),
+              style: TextStyle(fontSize: 12.5, color: _adminMuted),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -569,7 +672,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Admin Action Center', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+            const Text('Admin Action Center', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
             const SizedBox(height: 6),
             Wrap(
               spacing: 8,
@@ -585,7 +688,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                   .toList(),
             ),
             const SizedBox(height: 8),
-            Text('Last action status: $_lastActionStatus', style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+            Text('Last action status: $_lastActionStatus', style: const TextStyle(fontSize: 12.5, color: _adminMuted)),
           ],
         ),
       ),
@@ -594,12 +697,12 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
 
   Widget _operationCards() {
     final cards = [
-      ('Verification Queue', '$_verificationQueue', Icons.timelapse_outlined, AppTheme.warning),
-      ('Payment Issues', '$_paymentIssues', Icons.error_outline, AppTheme.error),
-      ('Agent SLA', '$_agentSla%', Icons.rule_folder_outlined, AppTheme.primaryGreen),
-      ('ROAS', '$_roas', Icons.trending_up, AppTheme.info),
-      ('CSAT', '$_csat%', Icons.mood_outlined, AppTheme.success),
-      ('Risk Users', '$_riskUsers', Icons.shield_outlined, const Color(0xFF6A1B9A)),
+      ('Verification Queue', '$_verificationQueue', Icons.timelapse_outlined, _adminMuted),
+      ('Payment Issues', '$_paymentIssues', Icons.error_outline, _adminText),
+      ('Agent SLA', '$_agentSla%', Icons.rule_folder_outlined, _adminText),
+      ('ROAS', '$_roas', Icons.trending_up, _adminText),
+      ('CSAT', '$_csat%', Icons.mood_outlined, _adminText),
+      ('Risk Users', '$_riskUsers', Icons.shield_outlined, _adminText),
     ];
 
     return Wrap(
@@ -616,15 +719,15 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Recent Executed Actions', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+            const Text('Recent Executed Actions', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
             const SizedBox(height: 8),
             if (_recentActions.isEmpty)
-              const Text('No simulated actions yet.', style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))
+              const Text('No simulated actions yet.', style: TextStyle(fontSize: 12.5, color: _adminMuted))
             else
               ..._recentActions.take(6).map(
                 (a) => Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: Text('${_timeString(a.time)}  ${a.tab}: ${a.action}', style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                  child: Text('${_timeString(a.time)}  ${a.tab}: ${a.action}', style: const TextStyle(fontSize: 12.5, color: _adminMuted)),
                 ),
               ),
           ],
@@ -698,10 +801,10 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                   LineChartBarData(
                     spots: List.generate(monthlyRevenue.length, (i) => FlSpot(i.toDouble(), monthlyRevenue[i].toDouble())),
                     isCurved: true,
-                    color: AppTheme.primaryGreen,
+                    color: _adminText,
                     barWidth: 3,
                     dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(show: true, color: AppTheme.primaryGreen.withValues(alpha: 0.14)),
+                    belowBarData: BarAreaData(show: true, color: _adminText.withValues(alpha: 0.14)),
                   ),
                 ],
               ),
@@ -741,7 +844,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                         citySales.length,
                         (i) => BarChartGroupData(
                           x: i,
-                          barRods: [BarChartRodData(toY: citySales[i].$2.toDouble(), width: 18, color: const Color(0xFF2E7D32))],
+                          barRods: [BarChartRodData(toY: citySales[i].$2.toDouble(), width: 18, color: [_graph1, _graph2, _graph3, _graph4, _graph5][i % 5])],
                         ),
                       ),
                     ),
@@ -760,10 +863,10 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                       sectionsSpace: 2,
                       centerSpaceRadius: 40,
                       sections: [
-                        PieChartSectionData(value: typeSplit[0].$2.toDouble(), title: 'Elec', color: const Color(0xFF2E7D32)),
-                        PieChartSectionData(value: typeSplit[1].$2.toDouble(), title: 'Metal', color: const Color(0xFF1976D2)),
-                        PieChartSectionData(value: typeSplit[2].$2.toDouble(), title: 'Chem', color: const Color(0xFFEF6C00)),
-                        PieChartSectionData(value: typeSplit[3].$2.toDouble(), title: 'Glass', color: const Color(0xFF6A1B9A)),
+                        PieChartSectionData(value: typeSplit[0].$2.toDouble(), title: 'Elec', color: _graph1),
+                        PieChartSectionData(value: typeSplit[1].$2.toDouble(), title: 'Metal', color: _graph3),
+                        PieChartSectionData(value: typeSplit[2].$2.toDouble(), title: 'Chem', color: _graph5),
+                        PieChartSectionData(value: typeSplit[3].$2.toDouble(), title: 'Glass', color: _graph2),
                       ],
                     ),
                   ),
@@ -811,7 +914,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
           padding: const EdgeInsets.all(10),
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            color: AppTheme.primaryGreen.withValues(alpha: 0.08),
+            color: _adminText.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text('Automation uplift from actions: +$_scmBoost throughput points', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -822,10 +925,10 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Text('SCM Supply Flow', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                Text('SCM Supply Flow', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
                 SizedBox(height: 5),
                 Text('Tracks onboarding to settlement with queue pressure, legal turnaround, and closure logistics.',
-                    style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                    style: TextStyle(fontSize: 12.5, color: _adminMuted)),
               ],
             ),
           ),
@@ -872,7 +975,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                       ),
                       barGroups: List.generate(
                         funnel.length,
-                        (i) => BarChartGroupData(x: i, barRods: [BarChartRodData(toY: funnel[i].$2.toDouble(), width: 20, color: const Color(0xFF2E7D32))]),
+                        (i) => BarChartGroupData(x: i, barRods: [BarChartRodData(toY: funnel[i].$2.toDouble(), width: 20, color: [_graph1, _graph2, _graph3, _graph4][i % 4])]),
                       ),
                     ),
                   ),
@@ -905,7 +1008,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                       ),
                       barGroups: List.generate(
                         legalTat.length,
-                        (i) => BarChartGroupData(x: i, barRods: [BarChartRodData(toY: legalTat[i].$2.toDouble(), width: 16, color: const Color(0xFF1976D2))]),
+                        (i) => BarChartGroupData(x: i, barRods: [BarChartRodData(toY: legalTat[i].$2.toDouble(), width: 16, color: [_graph3, _graph5, _graph2, _graph1][i % 4])]),
                       ),
                     ),
                   ),
@@ -961,7 +1064,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                 ),
                 barGroups: List.generate(
                   escrowTimeline.length,
-                  (i) => BarChartGroupData(x: i, barRods: [BarChartRodData(toY: escrowTimeline[i].$2, width: 18, color: const Color(0xFFEF6C00))]),
+                  (i) => BarChartGroupData(x: i, barRods: [BarChartRodData(toY: escrowTimeline[i].$2, width: 18, color: [_graph5, _graph3, _graph1, _graph2][i % 4])]),
                 ),
               ),
             ),
@@ -1055,8 +1158,8 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                           x: i,
                           barsSpace: 4,
                           barRods: [
-                            BarChartRodData(toY: commissionVsBuilder[i].$2.toDouble(), width: 10, color: const Color(0xFF2E7D32)),
-                            BarChartRodData(toY: commissionVsBuilder[i].$3.toDouble(), width: 10, color: const Color(0xFF1976D2)),
+                            BarChartRodData(toY: commissionVsBuilder[i].$2.toDouble(), width: 10, color: _graph1),
+                            BarChartRodData(toY: commissionVsBuilder[i].$3.toDouble(), width: 10, color: _graph3),
                           ],
                         ),
                       ),
@@ -1076,10 +1179,10 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                       sectionsSpace: 2,
                       centerSpaceRadius: 36,
                       sections: [
-                        PieChartSectionData(value: streamSplit[0].$2.toDouble(), title: 'Com', color: const Color(0xFF2E7D32)),
-                        PieChartSectionData(value: streamSplit[1].$2.toDouble(), title: 'Build', color: const Color(0xFF1976D2)),
-                        PieChartSectionData(value: streamSplit[2].$2.toDouble(), title: 'Ads', color: const Color(0xFFEF6C00)),
-                        PieChartSectionData(value: streamSplit[3].$2.toDouble(), title: 'Aff', color: const Color(0xFF6A1B9A)),
+                        PieChartSectionData(value: streamSplit[0].$2.toDouble(), title: 'Com', color: _graph1),
+                        PieChartSectionData(value: streamSplit[1].$2.toDouble(), title: 'Build', color: _graph2),
+                        PieChartSectionData(value: streamSplit[2].$2.toDouble(), title: 'Ads', color: _graph5),
+                        PieChartSectionData(value: streamSplit[3].$2.toDouble(), title: 'Aff', color: _graph3),
                       ],
                     ),
                   ),
@@ -1213,7 +1316,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Ad Creatives', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                const Text('Ad Creatives', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -1225,8 +1328,15 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFE1ECE4)),
-                            color: Colors.white,
+                            border: Border.all(color: _adminBorder),
+                            color: _adminSurface,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1243,18 +1353,18 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8),
                                       gradient: const LinearGradient(
-                                        colors: [Color(0xFFE6F4EA), Color(0xFFD7EAF8)],
+                                        colors: [_adminSurface, _adminMuted],
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
                                       ),
                                     ),
-                                    child: const Center(child: Icon(Icons.image_outlined, color: AppTheme.primaryGreen)),
+                                    child: const Center(child: Icon(Icons.image_outlined, color: _adminText)),
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Text(c.$1, style: const TextStyle(fontWeight: FontWeight.w700)),
-                              Text('Type: ${c.$2}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                              Text('Type: ${c.$2}', style: const TextStyle(fontSize: 12, color: _adminMuted)),
                               const SizedBox(height: 4),
                               Text('Impressions ${c.$3}  |  Clicks ${c.$4}  |  Leads ${c.$5}', style: const TextStyle(fontSize: 12.5)),
                             ],
@@ -1274,13 +1384,13 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Marketing Framework', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                const Text('Marketing Framework', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: framework
-                      .map((f) => _miniInfoCard(f.$1, f.$2, Icons.hub_outlined, AppTheme.primaryGreen))
+                      .map((f) => _miniInfoCard(f.$1, f.$2, Icons.hub_outlined, _adminText))
                       .toList(),
                 ),
               ],
@@ -1327,7 +1437,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                           ),
                         ),
                       ),
-                      barGroups: List.generate(platformPerf.length, (i) => BarChartGroupData(x: i, barRods: [BarChartRodData(toY: platformPerf[i].$2.toDouble(), width: 18, color: const Color(0xFF2E7D32))])),
+                      barGroups: List.generate(platformPerf.length, (i) => BarChartGroupData(x: i, barRods: [BarChartRodData(toY: platformPerf[i].$2.toDouble(), width: 18, color: [_graph1, _graph2, _graph3, _graph4, _graph5][i % 5])])),
                     ),
                   ),
                 ),
@@ -1363,8 +1473,8 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                           x: i,
                           barsSpace: 4,
                           barRods: [
-                            BarChartRodData(toY: paidAds[i].$2.toDouble(), width: 12, color: const Color(0xFF1976D2)),
-                            BarChartRodData(toY: paidAds[i].$3.toDouble(), width: 12, color: const Color(0xFFEF6C00)),
+                            BarChartRodData(toY: paidAds[i].$2.toDouble(), width: 12, color: _graph1),
+                            BarChartRodData(toY: paidAds[i].$3.toDouble(), width: 12, color: _graph5),
                           ],
                         ),
                       ),
@@ -1400,11 +1510,11 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
           children: [
             SizedBox(
               width: 430,
-              child: _chartCard('SEO Organic Traffic Growth', _line12Chart(seoGrowth, const Color(0xFF2E7D32))),
+              child: _chartCard('SEO Organic Traffic Growth', _line12Chart(seoGrowth, _graph1)),
             ),
             SizedBox(
               width: 430,
-              child: _chartCard('Referral Marketing Growth', _line12Chart(referralGrowth, const Color(0xFF1565C0))),
+              child: _chartCard('Referral Marketing Growth', _line12Chart(referralGrowth, _graph5)),
             ),
           ],
         ),
@@ -1415,13 +1525,13 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Text('Paid Search Example Insight', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                Text('Paid Search Example Insight', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
                 SizedBox(height: 6),
                 Text('Keyword: verified reclaimed components', style: TextStyle(fontWeight: FontWeight.w600)),
                 SizedBox(height: 2),
-                Text('Impressions: 42,800  |  Clicks: 2,460  |  Leads: 318', style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                Text('Impressions: 42,800  |  Clicks: 2,460  |  Leads: 318', style: TextStyle(fontSize: 12.5, color: _adminMuted)),
                 SizedBox(height: 2),
-                Text('Conversion note: Leads from this cluster show 1.4x higher booking value.', style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                Text('Conversion note: Leads from this cluster show 1.4x higher booking value.', style: TextStyle(fontSize: 12.5, color: _adminMuted)),
               ],
             ),
           ),
@@ -1481,17 +1591,17 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('CRM Command Center', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                const Text('CRM Command Center', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
                 const SizedBox(height: 4),
-                const Text('Live service quality and retention control layer', style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                const Text('Live service quality and retention control layer', style: TextStyle(fontSize: 12.5, color: _adminMuted)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _severityCard('Critical', '${derived['critical']}', const Color(0xFFC62828)),
-                    _severityCard('High', '${derived['high']}', const Color(0xFFEF6C00)),
-                    _severityCard('Moderate', '${derived['moderate']}', const Color(0xFF1976D2)),
+                    _severityCard('Critical', '${derived['critical']}', _adminText),
+                    _severityCard('High', '${derived['high']}', _adminMuted),
+                    _severityCard('Moderate', '${derived['moderate']}', _adminText),
                   ],
                 ),
               ],
@@ -1499,7 +1609,33 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
           ),
         ),
         const SizedBox(height: 10),
-        const Text('Complaint Triage', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+        _panel(
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Live Customer Voice Stream', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
+                const SizedBox(height: 5),
+                Text(
+                  'Feedback ${_liveFeedbackCount}+  •  Complaints ${_liveComplaintCount}+  •  Total ${_liveFeedbackCount + _liveComplaintCount}+',
+                  style: const TextStyle(fontSize: 12.5, color: _adminMuted),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ..._liveFeedbackBuckets.entries.map((e) => _miniBucket('Feedback ${e.key}', '${e.value}')),
+                    ..._liveComplaintBuckets.entries.map((e) => _miniBucket('Complaint ${e.key}', '${e.value}')),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Text('Complaint Triage', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -1510,15 +1646,22 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
               width: 290,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: _adminSurface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE2ECE6)),
+                border: Border.all(color: _adminBorder),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(_complaints[i].customer, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  Text(_complaints[i].material, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                  Text(_complaints[i].material, style: const TextStyle(fontSize: 12.5, color: _adminMuted)),
                   const SizedBox(height: 4),
                   Text(_complaints[i].issue, style: const TextStyle(fontSize: 12.5)),
                   const SizedBox(height: 4),
@@ -1535,7 +1678,53 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
           ),
         ),
         const SizedBox(height: 10),
-        const Text('Interaction Pulse', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+        const Text('Live Complaint Inbox (Home Page Submissions)', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
+        const SizedBox(height: 8),
+        if (_liveComplaintInbox.isEmpty)
+          const Text('No live complaints in inbox.', style: TextStyle(fontSize: 12.5, color: _adminMuted))
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _liveComplaintInbox
+                .map(
+                  (item) => Container(
+                    width: 290,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _adminSurface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _adminBorder),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(item.customer, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        Text(item.material, style: const TextStyle(fontSize: 12.5, color: _adminMuted)),
+                        const SizedBox(height: 4),
+                        Text(item.message, style: const TextStyle(fontSize: 12.5)),
+                        const SizedBox(height: 4),
+                        Text('Severity: ${item.severity}', style: const TextStyle(fontSize: 12.5)),
+                        const SizedBox(height: 6),
+                        FilledButton.tonal(
+                          onPressed: () async {
+                            await CustomerVoiceService.instance.resolveComplaintById(item.id);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Resolved complaint for ${item.customer}')),
+                            );
+                            await _reloadVoiceData();
+                          },
+                          child: const Text('Resolve in Admin'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        const SizedBox(height: 10),
+        const Text('Interaction Pulse', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -1546,15 +1735,22 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                   width: 290,
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FBF9),
+                    color: _adminSurface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE2ECE6)),
+                    border: Border.all(color: _adminBorder),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(x.customer, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      Text('Material: ${x.material}', style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                      Text('Material: ${x.material}', style: const TextStyle(fontSize: 12.5, color: _adminMuted)),
                       const SizedBox(height: 4),
                       Text('Trigger: ${x.trigger}', style: const TextStyle(fontSize: 12.5)),
                       Text('Message: ${x.message}', style: const TextStyle(fontSize: 12.5)),
@@ -1566,7 +1762,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
               .toList(),
         ),
         const SizedBox(height: 10),
-        const Text('Review Momentum and Material Controls', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+        const Text('Review Momentum and Material Controls', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
         const SizedBox(height: 8),
         ...List.generate(
           _materialControls.length,
@@ -1574,9 +1770,16 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: _adminSurface,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE2ECE6)),
+              border: Border.all(color: _adminBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1622,11 +1825,11 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                           value: feedbackCategories[i].$2.toDouble(),
                           title: feedbackCategories[i].$1.split(' ').first,
                           color: [
-                            const Color(0xFF2E7D32),
-                            const Color(0xFF1976D2),
-                            const Color(0xFFEF6C00),
-                            const Color(0xFF6A1B9A),
-                            const Color(0xFFC62828),
+                            _graph1,
+                            _graph2,
+                            _graph5,
+                            _graph3,
+                            _graph4,
                           ][i],
                         ),
                       ),
@@ -1643,7 +1846,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Actions Taken + NPS', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                      const Text('Actions Taken + NPS', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
                       const SizedBox(height: 8),
                       const Text('Action Timeline', style: TextStyle(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
@@ -1653,9 +1856,9 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                       const SizedBox(height: 10),
                       const Text('NPS Split', style: TextStyle(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 6),
-                      _npsBar('Promoters', 62, const Color(0xFF2E7D32)),
-                      _npsBar('Passives', 24, const Color(0xFF1976D2)),
-                      _npsBar('Detractors', 14, const Color(0xFFC62828)),
+                      _npsBar('Promoters', 62, _graph1),
+                      _npsBar('Passives', 24, _graph3),
+                      _npsBar('Detractors', 14, _graph5),
                     ],
                   ),
                 ),
@@ -1670,7 +1873,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Issue Hotspots', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                const Text('Issue Hotspots', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -1680,9 +1883,16 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                             width: 260,
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: h.$4 == 'High' ? const Color(0xFFFFF3E0) : const Color(0xFFF6FAF7),
+                              color: h.$4 == 'High' ? _adminSurface : _adminSurface,
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFE1ECE4)),
+                              border: Border.all(color: _adminBorder),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.08),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1705,7 +1915,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
           spacing: 10,
           runSpacing: 10,
           children: [
-            SizedBox(width: 430, child: _chartCard('CSAT Trend', _line12Chart(csatTrend, const Color(0xFF2E7D32)))),
+            SizedBox(width: 430, child: _chartCard('CSAT Trend', _line12Chart(csatTrend, _graph2))),
             SizedBox(
               width: 430,
               child: _chartCard(
@@ -1732,7 +1942,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                       ),
                       barGroups: List.generate(
                         supportCats.length,
-                        (i) => BarChartGroupData(x: i, barRods: [BarChartRodData(toY: supportCats[i].$2.toDouble(), width: 18, color: const Color(0xFF1976D2))]),
+                        (i) => BarChartGroupData(x: i, barRods: [BarChartRodData(toY: supportCats[i].$2.toDouble(), width: 18, color: [_graph5, _graph2, _graph3, _graph1, _graph4][i % 5])]),
                       ),
                     ),
                   ),
@@ -1748,7 +1958,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Text('Loyalty and CRM Programs', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                Text('Loyalty and CRM Programs', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
                 SizedBox(height: 6),
                 Text('Rewards Tiers: Bronze 1,204  |  Silver 618  |  Gold 221  |  Platinum 74'),
                 Text('Segment Counts: New 432  |  Repeat 982  |  At-Risk 166'),
@@ -1839,7 +2049,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
           spacing: 8,
           runSpacing: 8,
           children: practices
-              .map((p) => _miniInfoCard(p.$1, p.$2, Icons.security_outlined, AppTheme.primaryGreen))
+              .map((p) => _miniInfoCard(p.$1, p.$2, Icons.security_outlined, _adminText))
               .toList(),
         ),
         const SizedBox(height: 10),
@@ -1883,7 +2093,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Policy Documents', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                const Text('Policy Documents', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -1917,11 +2127,11 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('ERP Modules', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+            const Text('ERP Modules', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
             const SizedBox(height: 6),
             const Text(
               'Mapped from Business Engine into Global Admin Orchestrator for direct operational access.',
-              style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary),
+              style: TextStyle(fontSize: 12.5, color: _adminMuted),
             ),
             const SizedBox(height: 10),
             ...modules.map(
@@ -1929,9 +2139,16 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF9FBFA),
+                  color: _adminSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2ECE6)),
+                  border: Border.all(color: _adminBorder),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -1941,8 +2158,8 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
                         children: [
                           Text(m.$1, style: const TextStyle(fontWeight: FontWeight.w700)),
                           const SizedBox(height: 2),
-                          Text(m.$2, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
-                          Text(m.$3, style: const TextStyle(fontSize: 12.5, color: AppTheme.primaryGreen)),
+                          Text(m.$2, style: const TextStyle(fontSize: 12.5, color: _adminMuted)),
+                          Text(m.$3, style: const TextStyle(fontSize: 12.5, color: _adminText)),
                         ],
                       ),
                     ),
@@ -2022,7 +2239,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
             const SizedBox(height: 8),
             chart,
           ],
@@ -2038,7 +2255,7 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
             const SizedBox(height: 8),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -2051,13 +2268,14 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
   }
 
   Widget _metricCard(String label, String value, IconData icon, Color color) {
-    return Container(
+    return _HoverLift(
+      child: Container(
       width: 160,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _adminSurface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2ECE6)),
+        border: Border.all(color: _adminBorder),
       ),
       child: Row(
         children: [
@@ -2075,12 +2293,13 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                Text(label, style: const TextStyle(fontSize: 11.5, color: _adminMuted)),
                 Text(value, style: TextStyle(fontWeight: FontWeight.w700, color: color)),
               ],
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -2104,25 +2323,40 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
     );
   }
 
+  Widget _miniBucket(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: _adminSurfaceAlt,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _adminBorder),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _adminText),
+      ),
+    );
+  }
+
   Widget _npsBar(String label, int value, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          SizedBox(width: 80, child: Text(label, style: const TextStyle(fontSize: 12.5))),
+          SizedBox(width: 80, child: Text(label, style: const TextStyle(fontSize: 12.5, color: _adminText))),
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: LinearProgressIndicator(
                 value: value / 100,
                 minHeight: 8,
-                backgroundColor: const Color(0xFFE9EEF3),
+                backgroundColor: _adminSurfaceAlt,
                 color: color,
               ),
             ),
           ),
           const SizedBox(width: 8),
-          Text('$value%'),
+          Text('$value%', style: const TextStyle(color: _adminText)),
         ],
       ),
     );
@@ -2132,13 +2366,13 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
-        side: BorderSide(color: active ? AppTheme.primaryGreen : const Color(0xFFD7E4DB)),
-        backgroundColor: active ? AppTheme.primaryGreen.withValues(alpha: 0.12) : null,
+        side: BorderSide(color: active ? _adminGold : _adminBorder),
+        backgroundColor: active ? _adminSurfaceAlt : _adminSurface,
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: active ? AppTheme.primaryGreen : AppTheme.textSecondary,
+          color: active ? _adminGoldSoft : _adminMuted,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -2146,13 +2380,14 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
   }
 
   Widget _miniInfoCard(String title, String text, IconData icon, Color color) {
-    return Container(
+    return _HoverLift(
+      child: Container(
       width: 280,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _adminSurface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2ECE6)),
+        border: Border.all(color: _adminBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2171,32 +2406,36 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
                 const SizedBox(height: 2),
-                Text(text, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                Text(text, style: const TextStyle(fontSize: 12.5, color: _adminMuted)),
               ],
             ),
           ),
         ],
       ),
+      ),
     );
   }
 
   Widget _panel(Widget child) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2ECE6)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    final accent = _tabAccentColor();
+    return _HoverLift(
+      child: Container(
+        decoration: BoxDecoration(
+          color: _adminSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _adminBorder),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: child,
       ),
-      child: child,
     );
   }
 }
@@ -2211,26 +2450,30 @@ class _KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final good = change.startsWith('+') || change == 'Pass' || change == 'No incidents' || change == '365d';
+    final palette = good
+        ? (_adminText, _adminMuted)
+        : (_adminText, _adminMuted);
 
-    return Container(
+    return _HoverLift(
+      child: Container(
       width: 220,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _adminSurface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2ECE6)),
+        border: Border.all(color: _adminBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+          Text(title, style: const TextStyle(fontSize: 12.5, color: _adminMuted)),
           const SizedBox(height: 3),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _adminText)),
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
             decoration: BoxDecoration(
-              color: good ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+              color: palette.$2,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -2238,11 +2481,42 @@ class _KpiCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: good ? const Color(0xFF2E7D32) : Colors.orange.shade700,
+                color: palette.$1,
               ),
             ),
           ),
         ],
+      ),
+      ),
+    );
+  }
+}
+
+class _HoverLift extends StatefulWidget {
+  final Widget child;
+  const _HoverLift({required this.child});
+
+  @override
+  State<_HoverLift> createState() => _HoverLiftState();
+}
+
+class _HoverLiftState extends State<_HoverLift> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+        transform: Matrix4.identity()..translate(0.0, _hovered ? -3.0 : 0.0),
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 160),
+          scale: _hovered ? 1.008 : 1,
+          child: widget.child,
+        ),
       ),
     );
   }

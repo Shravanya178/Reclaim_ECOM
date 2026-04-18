@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
 import 'package:reclaim/core/services/razorpay_web_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
+import 'package:reclaim/core/widgets/ecommerce_backdrop.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
 import 'package:reclaim/core/widgets/web_navbar.dart';
@@ -56,17 +57,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded), onPressed: () => context.go('/cart')),
               title: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.w700)))
           : null,
-      body: SingleChildScrollView(child: Column(children: [
-        if (!isMobile) _buildPageHeader(context),
-        Center(child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: AppTheme.contentMaxWidth(MediaQuery.of(context).size.width)),
-          child: Padding(
-            padding: isMobile ? const EdgeInsets.all(16) : const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
-            child: isMobile ? _buildMobile(context) : _buildDesktop(context),
-          ),
-        )),
-        if (!isMobile) const WebFooter(),
-      ])),
+      body: EcommerceBackdrop(
+        imageUrl:
+            'https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&w=1700&q=80',
+        child: SingleChildScrollView(child: Column(children: [
+          if (!isMobile) _buildPageHeader(context),
+          Center(child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: AppTheme.contentMaxWidth(MediaQuery.of(context).size.width)),
+            child: Padding(
+              padding: isMobile ? const EdgeInsets.all(16) : const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+              child: isMobile ? _buildMobile(context) : _buildDesktop(context),
+            ),
+          )),
+          if (!isMobile) const WebFooter(),
+        ])),
+      ),
     );
   }
 
@@ -137,7 +142,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   // ─── Step card ────────────────────────────────────────────────────────────
   Widget _buildStepCard(BuildContext context) => Container(
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
+    decoration: BoxDecoration(color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(18),
       border: Border.all(color: const Color(0xFFE5EFE8)),
       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 4))]),
     padding: const EdgeInsets.all(28),
@@ -544,7 +549,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final total = items.fold(0.0, (s, i) => s + i.price * i.quantity);
     final grand = total + 49;
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
+      decoration: BoxDecoration(color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE5EFE8)),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 14, offset: const Offset(0, 4))]),
       padding: const EdgeInsets.all(22),
@@ -591,11 +596,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   // ─── SUCCESS SCREEN ───────────────────────────────────────────────────────
   Widget _buildSuccess(BuildContext context, bool isMobile) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FCF9),
+      backgroundColor: const Color(0xFF0D231A),
       body: Center(child: Container(
         margin: const EdgeInsets.all(24),
         constraints: const BoxConstraints(maxWidth: 520),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24),
+        decoration: BoxDecoration(color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(24),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 32, offset: const Offset(0, 12))]),
         padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 40),
         child: Column(mainAxisSize: MainAxisSize.min, children: [

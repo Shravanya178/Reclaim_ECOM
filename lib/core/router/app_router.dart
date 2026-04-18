@@ -14,6 +14,7 @@ import 'package:reclaim/features/dashboard/presentation/screens/student_dashboar
 import 'package:reclaim/features/dashboard/presentation/screens/student_projects_screen.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/lab_dashboard_screen.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/admin_dashboard_screen.dart';
+import 'package:reclaim/features/dashboard/presentation/screens/admin_orchestrator_screen.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/scm_dashboard_screen.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/business_engine_screen.dart';
 import 'package:reclaim/features/dashboard/presentation/screens/flow_timeline_screen.dart';
@@ -149,6 +150,11 @@ GoRouter appRouter(AppRouterRef ref) {
         path: '/admin-dashboard',
         name: 'admin-dashboard',
         builder: (context, state) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/admin-orchestrator',
+        name: 'admin-orchestrator',
+        builder: (context, state) => const AdminOrchestratorScreen(),
       ),
 
       // SCM Dashboard

@@ -2,8 +2,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:reclaim/core/services/customer_voice_service.dart';
 import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
+import 'package:reclaim/core/widgets/ecommerce_backdrop.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
 import 'package:reclaim/core/widgets/web_navbar.dart';
@@ -67,9 +69,43 @@ class _ProductCatalogScreenState extends ConsumerState<ProductCatalogScreen> {
   String? _category;
   String _sortBy = 'newest';
   RangeValues _priceRange = const RangeValues(0, 2000);
+  Map<String, double> _materialDiscounts = const {};
 
   // Starts with static data; replaced by Supabase records once loaded
   List<_P> _allProducts = _products;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMaterialDiscounts();
+  }
+
+  Future<void> _loadMaterialDiscounts() async {
+    final discounts = await CustomerVoiceService.instance.getMaterialDiscountMap();
+    if (!mounted) return;
+    setState(() => _materialDiscounts = discounts);
+  }
+
+  double _discountPercentFor(_P p) {
+    final normalized = p.name
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9 ]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    final tokens = normalized.split(' ').where((e) => e.isNotEmpty).toSet();
+
+    double best = 0;
+    for (final entry in _materialDiscounts.entries) {
+      final keyTokens = entry.key.split(' ').where((e) => e.isNotEmpty).toSet();
+      final overlap = tokens.intersection(keyTokens).length;
+      if (overlap >= 2 || entry.key.contains(normalized) || normalized.contains(entry.key)) {
+        if (entry.value > best) {
+          best = entry.value;
+        }
+      }
+    }
+    return best;
+  }
 
   List<_P> get _filtered {
     var list = _allProducts.where((p) {
@@ -131,7 +167,11 @@ class _ProductCatalogScreenState extends ConsumerState<ProductCatalogScreen> {
               ],
             )
           : null,
-      body: isMobile ? _buildMobile(context) : _buildDesktop(context),
+      body: EcommerceBackdrop(
+        imageUrl:
+            'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1800&q=80',
+        child: isMobile ? _buildMobile(context) : _buildDesktop(context),
+      ),
     );
   }
 
@@ -167,6 +207,15 @@ class _ProductCatalogScreenState extends ConsumerState<ProductCatalogScreen> {
           end: Alignment.bottomRight,
         )),
         child: Stack(children: [
+          Positioned.fill(
+              child: Image.network(
+            'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1800&q=80',
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          )),
+          Positioned.fill(
+            child: Container(color: const Color(0xC21B4332)),
+          ),
           Positioned(
               top: -60,
               right: -60,
@@ -377,7 +426,7 @@ class _ProductCatalogScreenState extends ConsumerState<ProductCatalogScreen> {
 
   Widget _sCard(String title, List<Widget> children) => Container(
         decoration: BoxDecoration(
-            color: Colors.white,
+        color: const Color(0xFFEAF3ED),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFFE5EFE8)),
             boxShadow: [
@@ -474,8 +523,11 @@ class _ProductCatalogScreenState extends ConsumerState<ProductCatalogScreen> {
             crossAxisSpacing: 16,
             mainAxisSpacing: 16),
         itemCount: products.length,
-        itemBuilder: (_, i) =>
-            _ProductCard(p: products[i], desktop: desktop),
+        itemBuilder: (_, i) => _ProductCard(
+          p: products[i],
+          desktop: desktop,
+          discountPercent: _discountPercentFor(products[i]),
+        ),
       ),
     ]);
   }
@@ -483,7 +535,7 @@ class _ProductCatalogScreenState extends ConsumerState<ProductCatalogScreen> {
   Widget _sortDD() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-            color: Colors.white,
+        color: const Color(0xFFEAF3ED),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: const Color(0xFFD4E6DA))),
         child: DropdownButtonHideUnderline(
@@ -581,8 +633,11 @@ class _ProductCatalogScreenState extends ConsumerState<ProductCatalogScreen> {
             crossAxisSpacing: 10,
             mainAxisSpacing: 10),
         itemCount: products.length,
-        itemBuilder: (_, i) =>
-            _ProductCard(p: products[i], desktop: false),
+        itemBuilder: (_, i) => _ProductCard(
+          p: products[i],
+          desktop: false,
+          discountPercent: _discountPercentFor(products[i]),
+        ),
       )),
     ]);
   }
@@ -592,7 +647,9 @@ class _ProductCatalogScreenState extends ConsumerState<ProductCatalogScreen> {
 class _ProductCard extends ConsumerStatefulWidget {
   final _P p;
   final bool desktop;
-  const _ProductCard({required this.p, required this.desktop});
+  final double discountPercent;
+
+  const _ProductCard({required this.p, required this.desktop, required this.discountPercent});
   @override
   ConsumerState<_ProductCard> createState() => _ProductCardState();
 }
@@ -639,6 +696,11 @@ class _ProductCardState extends ConsumerState<_ProductCard>
         _ => const Color(0xFFE65100),
       };
 
+  double get _effectivePrice {
+    if (widget.discountPercent <= 0) return widget.p.price;
+    return widget.p.price * (1 - (widget.discountPercent / 100));
+  }
+
   void _addToCart() async {
     final intelligence = ErpCrmIntelligenceService.instance;
     final reserved = await intelligence.reserveItem(widget.p.name);
@@ -662,7 +724,7 @@ class _ProductCardState extends ConsumerState<_ProductCard>
           id: widget.p.name,
           name: widget.p.name,
           imageUrl: widget.p.imageUrl,
-          price: widget.p.price,
+          price: _effectivePrice,
           category: widget.p.category,
           condition: widget.p.condition,
           lab: widget.p.lab,
@@ -709,7 +771,7 @@ class _ProductCardState extends ConsumerState<_ProductCard>
         transform: Matrix4.identity()
           ..translate(0.0, _hovered ? -6.0 : 0.0, 0.0),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFEAF3ED),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
               color: _hovered
@@ -741,7 +803,11 @@ class _ProductCardState extends ConsumerState<_ProductCard>
                         showDialog(
                           context: context,
                           barrierColor: Colors.black54,
-                          builder: (_) => _ProductDetailDialog(p: widget.p),
+                          builder: (_) => _ProductDetailDialog(
+                            p: widget.p,
+                            effectivePrice: _effectivePrice,
+                            discountPercent: widget.discountPercent,
+                          ),
                         );
                       },
                       child: Stack(children: [
@@ -835,6 +901,26 @@ class _ProductCardState extends ConsumerState<_ProductCard>
                                             fontWeight: FontWeight.w700,
                                             color: AppTheme.primaryGreen)),
                                   ]))),
+                      if (widget.discountPercent > 0)
+                        Positioned(
+                          top: 40,
+                          right: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFC62828),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${widget.discountPercent.toStringAsFixed(0)}% OFF',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
                       if (_isHighDemand)
                         Positioned(
                           bottom: 10,
@@ -980,12 +1066,20 @@ class _ProductCardState extends ConsumerState<_ProductCard>
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                  'Rs.${widget.p.price.toStringAsFixed(0)}',
+                                  'Rs.${_effectivePrice.toStringAsFixed(0)}',
                                   style: TextStyle(
-                                      fontSize:
-                                          widget.desktop ? 18 : 16,
+                                      fontSize: widget.desktop ? 18 : 16,
                                       fontWeight: FontWeight.w800,
                                       color: AppTheme.primaryGreen)),
+                              if (widget.discountPercent > 0)
+                                Text(
+                                  'Rs.${widget.p.price.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.textSecondary,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
                               ScaleTransition(
                                   scale: _scale,
                                   child: GestureDetector(
@@ -1048,7 +1142,15 @@ class _ProductCardState extends ConsumerState<_ProductCard>
 // ─── Product Detail Dialog ────────────────────────────────────────────────────
 class _ProductDetailDialog extends ConsumerWidget {
   final _P p;
-  const _ProductDetailDialog({required this.p, super.key});
+  final double effectivePrice;
+  final double discountPercent;
+
+  const _ProductDetailDialog({
+    required this.p,
+    required this.effectivePrice,
+    required this.discountPercent,
+    super.key,
+  });
 
   static const Map<String, List<(String, String, String)>> _history = {
     'Electronic': [
@@ -1153,8 +1255,22 @@ class _ProductDetailDialog extends ConsumerWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // price + rating
               Row(children: [
-                Text('Rs.${p.price.toStringAsFixed(0)}',
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Rs.${effectivePrice.toStringAsFixed(0)}',
                   style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.primaryGreen)),
+                    if (discountPercent > 0)
+                      Text(
+                        'Rs.${p.price.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.textSecondary,
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                      ),
+                  ],
+                ),
                 const Spacer(),
                 Row(children: [
                   Icon(Icons.star_rounded, color: Colors.amber.shade600, size: 18),
@@ -1222,11 +1338,16 @@ class _ProductDetailDialog extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
             decoration: const BoxDecoration(
               border: Border(top: BorderSide(color: Color(0xFFE5EFE8))),
-              color: Colors.white),
+              color: Color(0xFFEAF3ED)),
             child: Row(children: [
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Rs.${p.price.toStringAsFixed(0)}',
+                Text('Rs.${effectivePrice.toStringAsFixed(0)}',
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppTheme.primaryGreen)),
+                if (discountPercent > 0)
+                  Text(
+                    '${discountPercent.toStringAsFixed(0)}% discount active',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFFC62828), fontWeight: FontWeight.w700),
+                  ),
                 Text('${p.stock} available · Free campus delivery',
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
               ])),
@@ -1249,7 +1370,7 @@ class _ProductDetailDialog extends ConsumerWidget {
 
                   await intelligence.trackInteraction(productId: p.name, weight: 3);
                   ref.read(localCartProvider.notifier).add(LocalCartItem(
-                    id: p.name, name: p.name, imageUrl: p.imageUrl, price: p.price,
+                    id: p.name, name: p.name, imageUrl: p.imageUrl, price: effectivePrice,
                     category: p.category, condition: p.condition, lab: p.lab,
                     rating: p.rating, co2: p.co2,
                   ));
@@ -1299,7 +1420,7 @@ class _ProductDetailDialog extends ConsumerWidget {
     margin: const EdgeInsets.only(bottom: 10),
     padding: const EdgeInsets.all(13),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: const Color(0xFFEAF3ED),
       borderRadius: BorderRadius.circular(12),
       border: Border.all(color: const Color(0xFFE5EFE8)),
       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))]),

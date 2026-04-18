@@ -25,7 +25,7 @@ class WebNavBar extends StatelessWidget implements PreferredSizeWidget {
     return Container(
       height: 64,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFEAF3ED),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
@@ -161,7 +161,7 @@ class WebNavBar extends StatelessWidget implements PreferredSizeWidget {
                               size: 20,
                             ),
                             filled: true,
-                            fillColor: Colors.grey.shade50,
+                            fillColor: const Color(0xFFDDE9E0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(color: Colors.grey.shade200),
@@ -211,7 +211,7 @@ class WebNavBar extends StatelessWidget implements PreferredSizeWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
+                      color: const Color(0xFFDDE9E0),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: Colors.grey.shade200),
                     ),

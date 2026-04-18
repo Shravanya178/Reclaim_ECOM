@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
+import 'package:reclaim/core/widgets/ecommerce_backdrop.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
 import 'package:reclaim/core/widgets/responsive_scaffold.dart';
 import 'package:reclaim/core/widgets/web_navbar.dart';
@@ -45,7 +46,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
         elevation: 0,
         title: const Text('Admin', style: TextStyle(fontWeight: FontWeight.w700)),
       ) : null,
-      body: isMobile ? _mobile(context) : _desktop(context),
+      body: EcommerceBackdrop(
+        imageUrl:
+            'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=1800&q=80',
+        child: isMobile ? _mobile(context) : _desktop(context),
+      ),
     );
   }
 
@@ -86,7 +91,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
           const SizedBox(height: 40),
           // Tabs
           Container(
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+            decoration: BoxDecoration(color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(14),
               border: Border.all(color: const Color(0xFFE5EFE8)),
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,3))]),
             child: Column(children: [
@@ -117,7 +122,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
   Widget _statsGrid() => Row(children: _kStats.map((s) => Expanded(child: Container(
     margin: const EdgeInsets.only(right: 16),
     padding: const EdgeInsets.all(22),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+    decoration: BoxDecoration(color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(14),
       border: Border.all(color: const Color(0xFFE5EFE8)),
       boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,3))]),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -147,7 +152,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
           width: double.infinity,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFFEAF3ED),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFE5EFE8)),
           ),
@@ -198,7 +203,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10),
+      decoration: BoxDecoration(color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFF0F5F1))),
       child: Row(children: [
         Expanded(flex: 2, child: Text(o.$1 as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.primaryGreen))),
@@ -243,7 +248,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
       crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.5,
       children: _kStats.map((s) => Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5EFE8))),
+        decoration: BoxDecoration(color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5EFE8))),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(s.$3, color: s.$4, size: 22),
           const SizedBox(height: 8),
@@ -266,7 +271,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
       default:            sc = Colors.redAccent;
     }
     return Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5EFE8))),
+      decoration: BoxDecoration(color: const Color(0xFFEAF3ED), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5EFE8))),
       child: Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(o.$1 as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.primaryGreen)),

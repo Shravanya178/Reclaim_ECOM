@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:reclaim/core/theme/app_theme.dart';
 import 'responsive_builder.dart';
 import 'web_navbar.dart';
 
@@ -81,7 +82,7 @@ class ResponsiveScaffold extends StatelessWidget {
 
   Widget _buildDesktopLayout(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: AppTheme.backgroundLight,
       body: Column(
         children: [
           // Top navigation bar
