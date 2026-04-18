@@ -5,7 +5,8 @@ enum CampaignEmailType { reminder, advertisement }
 class EmailCampaignService {
   EmailCampaignService._();
 
-  static final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  static final FirebaseFunctions _functions =
+      FirebaseFunctions.instanceFor(region: 'asia-south1');
 
   static Future<String> sendCampaignEmail({
     required List<String> recipients,

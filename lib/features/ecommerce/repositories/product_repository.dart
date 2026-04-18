@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/product.dart';
 
@@ -99,7 +100,7 @@ class ProductRepository {
       final result = await query.order('created_at', ascending: false).range(offset, offset + limit - 1);
       return (result as List).map((json) => _productFromJson(json)).toList();
     } catch (e) {
-      print('Error fetching products: $e');
+      debugPrint('Products fetch failed. Falling back to local catalog: $e');
       return [];
     }
   }
@@ -115,7 +116,7 @@ class ProductRepository {
 
       return _productFromJson(result);
     } catch (e) {
-      print('Error fetching product: $e');
+      debugPrint('Product fetch failed: $e');
       return null;
     }
   }
@@ -137,7 +138,7 @@ class ProductRepository {
 
       return (result as List).map((json) => _productFromJson(json)).toList();
     } catch (e) {
-      print('Error searching products: $e');
+      debugPrint('Product search failed: $e');
       return [];
     }
   }
@@ -155,7 +156,7 @@ class ProductRepository {
 
       return (result as List).map((json) => _productFromJson(json)).toList();
     } catch (e) {
-      print('Error fetching featured products: $e');
+      debugPrint('Featured products fetch failed: $e');
       return [];
     }
   }
@@ -174,7 +175,7 @@ class ProductRepository {
 
       return (result as List).map((json) => _productFromJson(json)).toList();
     } catch (e) {
-      print('Error fetching products by type: $e');
+      debugPrint('Products-by-type fetch failed: $e');
       return [];
     }
   }
@@ -195,7 +196,7 @@ class ProductRepository {
 
       return types.toList();
     } catch (e) {
-      print('Error fetching product types: $e');
+      debugPrint('Product types fetch failed: $e');
       return [];
     }
   }
@@ -228,7 +229,7 @@ class ProductRepository {
         totalValue: totalValue,
       );
     } catch (e) {
-      print('Error fetching product stats: $e');
+      debugPrint('Product stats fetch failed: $e');
       return ProductStats(
         totalProducts: 0,
         inStock: 0,
