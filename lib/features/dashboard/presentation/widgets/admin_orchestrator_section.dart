@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:reclaim/core/services/customer_voice_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
@@ -156,6 +157,68 @@ class _MaterialControl {
   }
 }
 
+class _SupplierProfile {
+  final String id;
+  final String name;
+  final String category;
+  final double rating;
+  final int itemsSupplied;
+  final double fulfillmentRate;
+  final double demandMatch;
+  final int avgLeadDays;
+  final String phone;
+  final bool preferred;
+
+  const _SupplierProfile({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.rating,
+    required this.itemsSupplied,
+    required this.fulfillmentRate,
+    required this.demandMatch,
+    required this.avgLeadDays,
+    required this.phone,
+    required this.preferred,
+  });
+
+  double get performanceScore => (fulfillmentRate * 0.55) + (demandMatch * 0.45);
+
+  bool get reliable => performanceScore >= 88;
+}
+
+class _ScmInventoryItem {
+  final String material;
+  final String category;
+  final int currentStock;
+  final int avgWeeklyDemand;
+  final int leadDays;
+  final int safetyStock;
+  final bool highDemand;
+
+  const _ScmInventoryItem({
+    required this.material,
+    required this.category,
+    required this.currentStock,
+    required this.avgWeeklyDemand,
+    required this.leadDays,
+    required this.safetyStock,
+    required this.highDemand,
+  });
+
+  _ScmInventoryItem copyWith({int? currentStock}) {
+    return _ScmInventoryItem(
+      material: material,
+      category: category,
+      currentStock: currentStock ?? this.currentStock,
+      avgWeeklyDemand: avgWeeklyDemand,
+      leadDays: leadDays,
+      safetyStock: safetyStock,
+      highDemand: highDemand,
+    );
+  }
+}
+
 class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
   static const List<String> _tabs = [
     'Overview',
@@ -256,6 +319,96 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
     ),
   ];
 
+  static const List<_SupplierProfile> _seedSuppliers = [
+    _SupplierProfile(
+      id: 'sup-eco',
+      name: 'EcoMetals Cooperative',
+      category: 'Metal',
+      rating: 4.8,
+      itemsSupplied: 320,
+      fulfillmentRate: 94,
+      demandMatch: 92,
+      avgLeadDays: 3,
+      phone: '919867110023',
+      preferred: true,
+    ),
+    _SupplierProfile(
+      id: 'sup-circuit',
+      name: 'CircuitLoop Works',
+      category: 'Electronic',
+      rating: 4.4,
+      itemsSupplied: 214,
+      fulfillmentRate: 86,
+      demandMatch: 83,
+      avgLeadDays: 4,
+      phone: '919619550311',
+      preferred: false,
+    ),
+    _SupplierProfile(
+      id: 'sup-glass',
+      name: 'GlassCycle Hub',
+      category: 'Chemical',
+      rating: 4.6,
+      itemsSupplied: 178,
+      fulfillmentRate: 91,
+      demandMatch: 88,
+      avgLeadDays: 4,
+      phone: '919769112088',
+      preferred: true,
+    ),
+    _SupplierProfile(
+      id: 'sup-power',
+      name: 'PowerRecover Cells',
+      category: 'Electronic',
+      rating: 3.8,
+      itemsSupplied: 94,
+      fulfillmentRate: 74,
+      demandMatch: 69,
+      avgLeadDays: 7,
+      phone: '919819220455',
+      preferred: false,
+    ),
+  ];
+
+  static const List<_ScmInventoryItem> _seedScmItems = [
+    _ScmInventoryItem(
+      material: 'Copper Wire Batch CW-14',
+      category: 'Metal',
+      currentStock: 26,
+      avgWeeklyDemand: 44,
+      leadDays: 4,
+      safetyStock: 12,
+      highDemand: true,
+    ),
+    _ScmInventoryItem(
+      material: 'PCB Salvage Kit PK-22',
+      category: 'Electronic',
+      currentStock: 17,
+      avgWeeklyDemand: 37,
+      leadDays: 5,
+      safetyStock: 11,
+      highDemand: true,
+    ),
+    _ScmInventoryItem(
+      material: 'Glassware Bundle GB-09',
+      category: 'Chemical',
+      currentStock: 48,
+      avgWeeklyDemand: 22,
+      leadDays: 3,
+      safetyStock: 9,
+      highDemand: false,
+    ),
+    _ScmInventoryItem(
+      material: 'Li-Ion Cells LC-31',
+      category: 'Electronic',
+      currentStock: 11,
+      avgWeeklyDemand: 35,
+      leadDays: 6,
+      safetyStock: 14,
+      highDemand: true,
+    ),
+  ];
+
   String _activeTab = 'Overview';
 
   int _verificationQueue = 39;
@@ -275,6 +428,8 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
   List<_Complaint> _complaints = List<_Complaint>.from(_seedComplaints);
   List<_InteractionPulse> _interactions = List<_InteractionPulse>.from(_seedInteractions);
   List<_MaterialControl> _materialControls = List<_MaterialControl>.from(_seedMaterialControls);
+  List<_SupplierProfile> _suppliers = List<_SupplierProfile>.from(_seedSuppliers);
+  List<_ScmInventoryItem> _scmItems = List<_ScmInventoryItem>.from(_seedScmItems);
   List<VoiceEntry> _liveComplaintInbox = const <VoiceEntry>[];
   Map<String, int> _liveFeedbackBuckets = const {};
   Map<String, int> _liveComplaintBuckets = const {};
@@ -336,6 +491,159 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
         .replaceAll(RegExp(r'[^a-z0-9 ]'), ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
+  }
+
+  int _dynamicReorderThreshold(_ScmInventoryItem item) {
+    final leadDemand = ((item.avgWeeklyDemand * item.leadDays) / 7).round();
+    return leadDemand + item.safetyStock;
+  }
+
+  bool _reorderRequired(_ScmInventoryItem item) {
+    return item.currentStock < _dynamicReorderThreshold(item);
+  }
+
+  List<_SupplierProfile> _bestSuppliersFor(_ScmInventoryItem item) {
+    final candidates = _suppliers
+        .where((s) => s.category == item.category)
+        .toList(growable: false);
+    candidates.sort((a, b) => b.performanceScore.compareTo(a.performanceScore));
+    return candidates;
+  }
+
+  Future<void> _launchWhatsApp(String phone, String message) async {
+    final uri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open WhatsApp right now.')),
+      );
+    }
+  }
+
+  Future<void> _openSupplierDetails(_SupplierProfile supplier) async {
+    final label = supplier.reliable ? 'Reliable Supplier' : 'Low Performance Supplier';
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(supplier.name),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Category: ${supplier.category}'),
+            Text('Rating: ${supplier.rating.toStringAsFixed(1)}/5'),
+            Text('Items supplied: ${supplier.itemsSupplied}'),
+            Text('Fulfillment: ${supplier.fulfillmentRate.toStringAsFixed(0)}%'),
+            Text('Demand match: ${supplier.demandMatch.toStringAsFixed(0)}%'),
+            Text('Lead time: ${supplier.avgLeadDays} days'),
+            const SizedBox(height: 8),
+            Text(label, style: TextStyle(color: supplier.reliable ? Colors.green : Colors.red, fontWeight: FontWeight.w700)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Contact initiated with ${supplier.name}.')),
+              );
+            },
+            child: const Text('Contact'),
+          ),
+          FilledButton.tonal(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _launchWhatsApp(
+                supplier.phone,
+                'Hello ${supplier.name}, this is ReClaim SCM admin. Need urgent replenishment support.',
+              );
+            },
+            child: const Text('Call on WhatsApp'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openReorderDialog(int index) async {
+    final item = _scmItems[index];
+    final options = _bestSuppliersFor(item);
+    if (options.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No vendors mapped for this category.')),
+      );
+      return;
+    }
+
+    String selectedSupplierId = options.first.id;
+    int reorderQty = (item.avgWeeklyDemand * 1.2).round();
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Reorder ${item.material}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Current stock: ${item.currentStock}'),
+              Text('Threshold: ${_dynamicReorderThreshold(item)}'),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: selectedSupplierId,
+                decoration: const InputDecoration(labelText: 'Best vendor'),
+                items: options
+                    .map((s) => DropdownMenuItem<String>(
+                          value: s.id,
+                          child: Text('${s.name} (${s.performanceScore.toStringAsFixed(0)}%)'),
+                        ))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setDialogState(() => selectedSupplierId = v);
+                },
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                initialValue: '$reorderQty',
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Reorder quantity'),
+                onChanged: (v) {
+                  final parsed = int.tryParse(v);
+                  if (parsed != null && parsed > 0) {
+                    reorderQty = parsed;
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () {
+                final supplier = options.firstWhere((s) => s.id == selectedSupplierId);
+                setState(() {
+                  _scmItems[index] = item.copyWith(currentStock: item.currentStock + reorderQty);
+                  _verificationQueue = (_verificationQueue - 2).clamp(0, 999);
+                  _lastActionStatus = 'Reorder placed with ${supplier.name} for ${item.material}';
+                  _recentActions.insert(
+                    0,
+                    _ActionLog(tab: 'SCM', action: 'Reorder ${item.material}', time: DateTime.now()),
+                  );
+                });
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Reorder placed to ${supplier.name} (+$reorderQty units).')),
+                );
+              },
+              child: const Text('Place Reorder'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Color _tabAccentColor() {
@@ -892,13 +1200,15 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
       ('Agreement', 34),
       ('Compliance Review', 22),
     ];
-    const vendorRows = [
-      ('EcoMetals Cooperative', 'Verified', 32, '94%', 'Low'),
-      ('CircuitLoop Works', 'Pending', 18, '86%', 'Medium'),
-      ('GlassCycle Hub', 'Verified', 27, '91%', 'Low'),
-      ('BioReuse Labs', 'Verified', 14, '88%', 'Medium'),
-      ('PowerRecover Cells', 'Flagged', 9, '74%', 'High'),
-    ];
+    final vendorRows = _suppliers
+        .map((s) => (
+              s.name,
+              s.preferred ? 'Verified' : 'Pending',
+              s.itemsSupplied,
+              '${s.fulfillmentRate.toStringAsFixed(0)}%',
+              s.reliable ? 'Low' : 'High',
+            ))
+        .toList(growable: false);
     const escrowTimeline = [
       ('Escrow Open', 2.2),
       ('Document Match', 1.8),
@@ -1016,6 +1326,88 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 10),
+        _panel(
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Dynamic Reorder Point System', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
+                const SizedBox(height: 6),
+                const Text('Automated reorder trigger when current stock falls below dynamic threshold.', style: TextStyle(fontSize: 12.5, color: _adminMuted)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: List.generate(_scmItems.length, (i) {
+                    final item = _scmItems[i];
+                    final threshold = _dynamicReorderThreshold(item);
+                    final needsReorder = _reorderRequired(item);
+                    return Container(
+                      width: 300,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _adminSurface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: needsReorder ? Colors.red : _adminBorder),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item.material, style: const TextStyle(fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 4),
+                          Text('Current stock: ${item.currentStock}'),
+                          Text('Reorder threshold: $threshold'),
+                          Text('Demand/week: ${item.avgWeeklyDemand}  |  Lead days: ${item.leadDays}'),
+                          if (item.highDemand)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 4),
+                              child: Text('High demand', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _adminText)),
+                            ),
+                          const SizedBox(height: 6),
+                          if (needsReorder)
+                            Row(
+                              children: [
+                                const Expanded(
+                                  child: Text('Reorder Required', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w700)),
+                                ),
+                                if (item.highDemand)
+                                  FilledButton.tonal(
+                                    onPressed: () => _openReorderDialog(i),
+                                    child: const Text('Reorder'),
+                                  ),
+                              ],
+                            )
+                          else
+                            const Text('Stock healthy', style: TextStyle(color: Colors.green, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _panel(
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Supplier Performance Indicator', style: TextStyle(fontWeight: FontWeight.w700, color: _adminText)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _suppliers.map((s) => _supplierProfileCard(s)).toList(),
+                ),
+              ],
+            ),
+          ),
         ),
         const SizedBox(height: 10),
         _tableCard(
@@ -2416,6 +2808,200 @@ class _AdminOrchestratorSectionState extends State<AdminOrchestratorSection> {
       ),
       ),
     );
+  }
+
+  Widget _supplierProfileCard(_SupplierProfile s) {
+    final badgeText = s.reliable ? 'Reliable Supplier' : 'Low Performance';
+    final badgeColor = s.reliable ? Colors.green : Colors.red;
+
+    return InkWell(
+      onTap: () => _openSupplierDetails(s),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 238,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+          border: Border.all(color: const Color(0xFFEAEAEA)),
+        ),
+        child: Column(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  height: 84,
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                    gradient: LinearGradient(
+                      colors: [Color(0xFFDCEEFF), Color(0xFFBCD3E9)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  alignment: Alignment.topRight,
+                  padding: const EdgeInsets.all(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      s.preferred ? 'Follow +' : '+',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF303030),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: -28,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: s.preferred
+                            ? const LinearGradient(colors: [Color(0xFF9A7DFF), Color(0xFF66E2A0), Color(0xFFFFD166)])
+                            : const LinearGradient(colors: [Color(0xFFEAEAEA), Color(0xFFEAEAEA)]),
+                      ),
+                      child: CircleAvatar(
+                        radius: 26,
+                        backgroundColor: const Color(0xFFF5F7FA),
+                        child: Text(
+                          _supplierInitials(s.name),
+                          style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF3A3A3A)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 34),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Column(
+                children: [
+                  Text(
+                    s.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF222222),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${s.category} supplier focused on fast and reliable delivery.',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      height: 1.35,
+                      color: Color(0xFF8A8A8A),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    badgeText,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: badgeColor),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F8F8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFEEEEEE)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(child: _profileMetric('${s.itemsSupplied}', 'Items')),
+                  Expanded(child: _profileMetric('${s.fulfillmentRate.toStringAsFixed(0)}%', 'Fulfill')),
+                  Expanded(child: _profileMetric('${s.demandMatch.toStringAsFixed(0)}%', 'Match')),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: Color(0xFFF0F0F0))),
+              ),
+              child: Row(
+                children: const [
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Icon(Icons.contact_phone_outlined, size: 16, color: Color(0xFF6A6A6A)),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Icon(Icons.star_border_rounded, size: 16, color: Color(0xFF6A6A6A)),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Icon(Icons.open_in_new_rounded, size: 16, color: Color(0xFF6A6A6A)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _profileMetric(String value, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF222222)),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10.5, color: Color(0xFF8A8A8A)),
+        ),
+      ],
+    );
+  }
+
+  String _supplierInitials(String name) {
+    final parts = name.split(' ').where((e) => e.isNotEmpty).toList(growable: false);
+    if (parts.isEmpty) return 'S';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'.toUpperCase();
   }
 
   Widget _panel(Widget child) {

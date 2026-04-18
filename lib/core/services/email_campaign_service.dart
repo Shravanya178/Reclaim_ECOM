@@ -1,12 +1,11 @@
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum CampaignEmailType { reminder, advertisement }
 
 class EmailCampaignService {
   EmailCampaignService._();
 
-  static final FirebaseFunctions _functions =
-      FirebaseFunctions.instanceFor(region: 'asia-south1');
+  static final SupabaseClient _supabase = Supabase.instance.client;
 
   static Future<String> sendCampaignEmail({
     required List<String> recipients,
@@ -28,13 +27,15 @@ class EmailCampaignService {
     }
 
     try {
-      final callable = _functions.httpsCallable('sendMarketingEmail');
-      final result = await callable.call(<String, dynamic>{
+      final result = await _supabase.functions.invoke(
+        'send-campaign-email',
+        body: <String, dynamic>{
         'recipients': sanitizedRecipients,
         'subject': subject.trim(),
         'body': body.trim(),
         'type': type.name,
-      });
+        },
+      );
 
       final data = result.data;
       if (data is Map && data['success'] == true) {
@@ -42,10 +43,35 @@ class EmailCampaignService {
       }
 
       throw Exception('Email dispatch failed.');
-    } on FirebaseFunctionsException catch (e) {
-      throw Exception(e.message ?? 'Failed to send email.');
     } catch (e) {
       throw Exception('Failed to send email: $e');
+    }
+  }
+
+  static Future<String> sendWaitlistAutoReply({
+    required String email,
+  }) async {
+    final sanitized = email.trim().toLowerCase();
+    if (sanitized.isEmpty) {
+      throw Exception('Please enter an email address.');
+    }
+
+    try {
+      final result = await _supabase.functions.invoke(
+        'send-waitlist-email',
+        body: <String, dynamic>{
+          'email': sanitized,
+        },
+      );
+
+      final data = result.data;
+      if (data is Map && data['success'] == true) {
+        return (data['message'] ?? 'Waitlist email sent.').toString();
+      }
+
+      throw Exception('Unable to send waitlist email.');
+    } catch (e) {
+      throw Exception('Waitlist email failed: $e');
     }
   }
 }

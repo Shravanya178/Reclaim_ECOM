@@ -1,14 +1,20 @@
-# Email Reminder/Advertisement Setup
+# Supabase Email Setup (Fast Path)
 
-This project now supports sending reminder or advertisement emails from the app via Firebase Callable Function.
+This setup uses **Supabase Edge Functions + Resend API** (no Firebase required).
 
-## What was added
+Implemented:
+- Waitlist auto-reply from onboarding form
+- Campaign mail sender from settings screen
+- Fixed sender: `2023.sanket.patil@ves.ac.in`
 
-- Flutter client service: `lib/core/services/email_campaign_service.dart`
-- Settings UI trigger: `lib/features/settings/presentation/screens/settings_screen.dart`
-- Firebase function sender: `functions/index.js`
+## Files Added/Updated
 
-## 1) Install Flutter dependency
+- `lib/core/services/email_campaign_service.dart`
+- `lib/features/auth/presentation/screens/onboarding_screen.dart`
+- `supabase/functions/send-waitlist-email/index.ts`
+- `supabase/functions/send-campaign-email/index.ts`
+
+## 1) Flutter dependencies
 
 Run from project root:
 
@@ -16,61 +22,52 @@ Run from project root:
 flutter pub get
 ```
 
-## 2) Install Firebase Functions dependencies
-
-Run from project root:
+## 2) Install Supabase CLI (if missing)
 
 ```bash
-cd functions
-npm install
+npm i -g supabase
 ```
 
-## 3) Set required function env vars
-
-From project root:
+## 3) Login + Link project
 
 ```bash
-firebase functions:secrets:set SMTP_HOST
-firebase functions:secrets:set SMTP_PORT
-firebase functions:secrets:set SMTP_USER
-firebase functions:secrets:set SMTP_PASS
-firebase functions:secrets:set MAIL_FROM
-firebase functions:secrets:set ALLOWED_ADMIN_EMAILS
+supabase login
+supabase link --project-ref osdfgvujgqcliqyaujhk
 ```
 
-If you prefer plain env vars for quick testing, set in shell before deploy:
-
-- `SMTP_HOST` (example: `smtp.gmail.com`)
-- `SMTP_PORT` (`587` or `465`)
-- `SMTP_USER` (sender email)
-- `SMTP_PASS` (app password)
-- `MAIL_FROM` (optional override, default SMTP_USER)
-- `ALLOWED_ADMIN_EMAILS` (comma-separated, e.g. `admin1@x.com,admin2@y.com`)
-
-## 4) Deploy function
-
-From project root:
+## 4) Set required secrets
 
 ```bash
-cd functions
-npm run deploy
+supabase secrets set RESEND_API_KEY=YOUR_RESEND_API_KEY
+supabase secrets set SENDER_EMAIL=2023.sanket.patil@ves.ac.in
 ```
 
-Function name:
+## 5) Deploy Edge Functions
 
-- `sendMarketingEmail`
+```bash
+supabase functions deploy send-waitlist-email --no-verify-jwt
+supabase functions deploy send-campaign-email --no-verify-jwt
+```
 
-## 5) Use in app
+## 6) Test quickly
 
-1. Open Settings screen.
-2. Go to Support section.
-3. Tap **Send Reminder/Ad Email**.
-4. Enter comma-separated recipients, subject, body, and type.
-5. Tap Send.
+- Open onboarding page
+- Enter email in “Stay Updated with ReClaim”
+- Click “Join Waitlist”
+- It should send fixed drafted mail
 
-## Notes
+## Important Provider Note
 
-- Caller must be authenticated.
-- Caller email must be listed in `ALLOWED_ADMIN_EMAILS` (if that env var is set).
-- Function sends using BCC to protect recipient privacy.
-- Current region in function: `asia-south1`. Change if needed.
+Resend may reject Gmail as sender unless verified in your Resend account.
+If rejected, verify sender/domain in Resend and update `SENDER_EMAIL` secret.
+
+## Fixed Waitlist Draft (already in function)
+
+Subject:
+- `Welcome to ReClaim waitlist`
+
+Body:
+- Hi,
+- Thanks for joining the ReClaim waitlist.
+- You will receive updates on reusable components and new features.
+- Team ReClaim

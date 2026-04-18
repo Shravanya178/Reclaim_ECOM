@@ -144,3 +144,59 @@ exports.sendMarketingEmail = onCall(
     };
   }
 );
+
+exports.sendWaitlistAutoReply = onCall(
+  {
+    region: 'asia-south1',
+    cors: true,
+    enforceAppCheck: false,
+    secrets: [SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM],
+  },
+  async (request) => {
+    const data = request.data || {};
+    const email = requireString(data.email, 'email', 5, 180).toLowerCase();
+
+    if (!EMAIL_REGEX.test(email)) {
+      throw new HttpsError('invalid-argument', 'Please provide a valid email address.');
+    }
+
+    const fromAddress = MAIL_FROM.value() || process.env.MAIL_FROM || SMTP_USER.value() || process.env.SMTP_USER;
+    const transport = createTransport();
+
+    const subject = 'Welcome to ReClaim waitlist';
+    const text = [
+      'Hi,',
+      '',
+      'Thanks for joining the ReClaim waitlist.',
+      'You will receive updates on reusable components, new features, and campus sustainability launches.',
+      '',
+      'Team ReClaim',
+    ].join('\n');
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6;">
+        <p>Hi,</p>
+        <p>Thanks for joining the <strong>ReClaim</strong> waitlist.</p>
+        <p>You will receive updates on reusable components, new features, and campus sustainability launches.</p>
+        <p style="margin-top:18px;">Team ReClaim</p>
+      </div>
+    `;
+
+    await transport.sendMail({
+      from: fromAddress,
+      to: email,
+      subject,
+      text,
+      html,
+    });
+
+    logger.info('Waitlist auto-reply sent', {
+      recipient: email,
+    });
+
+    return {
+      success: true,
+      message: 'Thanks! Check your inbox for our welcome email.',
+    };
+  }
+);

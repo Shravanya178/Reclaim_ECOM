@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:reclaim/core/services/email_campaign_service.dart';
 import 'package:reclaim/core/services/erp_crm_intelligence_service.dart';
 import 'package:reclaim/core/theme/app_theme.dart';
 import 'package:reclaim/core/widgets/responsive_builder.dart';
@@ -962,6 +963,7 @@ class _DesktopCTAState extends State<_DesktopCTA> {
   static final RegExp _emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
   String? _waitlistMessage;
   bool _waitlistSuccess = false;
+  bool _waitlistSending = false;
 
   @override
   void dispose() {
@@ -969,7 +971,7 @@ class _DesktopCTAState extends State<_DesktopCTA> {
     super.dispose();
   }
 
-  void _handleJoinWaitlist() {
+  Future<void> _handleJoinWaitlist() async {
     final email = _waitlistEmailCtrl.text.trim();
 
     if (!_emailRegex.hasMatch(email)) {
@@ -980,13 +982,34 @@ class _DesktopCTAState extends State<_DesktopCTA> {
       return;
     }
 
-    debugPrint('EMAIL_CAPTURE: $email');
-
     setState(() {
-      _waitlistSuccess = true;
-      _waitlistMessage = 'Thanks! You are on the list.';
-      _waitlistEmailCtrl.clear();
+      _waitlistSending = true;
+      _waitlistMessage = null;
     });
+
+    try {
+      final message = await EmailCampaignService.sendWaitlistAutoReply(email: email);
+      if (!mounted) return;
+
+      setState(() {
+        _waitlistSuccess = true;
+        _waitlistMessage = message;
+        _waitlistEmailCtrl.clear();
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _waitlistSuccess = false;
+        _waitlistMessage = e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _waitlistSending = false;
+        });
+      }
+    }
   }
 
   @override
@@ -1110,9 +1133,15 @@ class _DesktopCTAState extends State<_DesktopCTA> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _handleJoinWaitlist,
+                    onPressed: _waitlistSending ? null : _handleJoinWaitlist,
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppTheme.primaryDark, padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                    child: const Text('Join Waitlist', style: TextStyle(fontWeight: FontWeight.w800)),
+                    child: _waitlistSending
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Join Waitlist', style: TextStyle(fontWeight: FontWeight.w800)),
                   ),
                 ),
                 if (_waitlistMessage != null) ...[
