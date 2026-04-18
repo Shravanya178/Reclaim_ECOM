@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/models/user.dart';
+import '../../../../core/services/firebase_auth_service.dart';
+import '../../../../core/services/welcome_email_service.dart';
 
 class CampusSelectionScreen extends StatefulWidget {
   final UserRole? selectedRole;
@@ -433,9 +436,42 @@ class _CampusSelectionScreenState extends State<CampusSelectionScreen> {
     });
   }
 
-  void _handleComplete() {
-    // TODO: Save campus and department to user profile
-    // Navigate to appropriate dashboard based on user role
+  Future<void> _handleComplete() async {
+    final selectedCampus = _allCampuses.firstWhere((c) => c.id == _selectedCampusId);
+    final selectedDepartment = _departments.firstWhere((d) => d.id == _selectedDepartmentId);
+    final currentUser = FirebaseAuthService().currentUser;
+
+    if (currentUser != null) {
+      try {
+        await Supabase.instance.client.from('profiles').update({
+          'department': selectedDepartment.name,
+          'role': _userRole.name,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', currentUser.uid);
+      } catch (e) {
+        debugPrint('Profile update skipped: $e');
+      }
+    }
+
+    try {
+      await WelcomeEmailService.instance.sendPersonalizedWelcomeEmail(
+        fullName: currentUser?.displayName ?? currentUser?.email?.split('@').first ?? 'there',
+        departmentName: selectedDepartment.name,
+        campusName: selectedCampus.name,
+        role: _userRole.name,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Welcome email could not be sent: $e')),
+        );
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
     switch (_userRole) {
       case UserRole.student:
         context.go('/student-dashboard');

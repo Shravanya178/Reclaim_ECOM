@@ -33,6 +33,17 @@ class AppConfig {
 
   static bool get isDevelopment => environment == 'development';
   static bool get isProduction => environment == 'production';
+
+  // External email service configuration (Nodemailer backend)
+  static const String emailServiceBaseUrl = String.fromEnvironment(
+    'EMAIL_SERVICE_BASE_URL',
+    defaultValue: '',
+  );
+
+  static const String emailServiceApiKey = String.fromEnvironment(
+    'EMAIL_SERVICE_API_KEY',
+    defaultValue: '',
+  );
   
   // App Constants
   static const String appName = 'ReClaim';
